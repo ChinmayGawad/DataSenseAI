@@ -89,6 +89,17 @@ export interface FactCheckedInsight {
   confidence_score: number;
 }
 
+export interface ColumnProfileItem {
+  name: string;
+  detected_type: string;
+  pandas_dtype?: string;
+  unique_count: number;
+  null_count: number;
+  null_percentage?: number;
+  sample_values?: any[];
+  suggested_role?: string;
+}
+
 export interface DashboardResponse {
   job_id: string;
   dataset_id: string;
@@ -99,6 +110,8 @@ export interface DashboardResponse {
   charts: ChartConfig[];
   insights: FactCheckedInsight[];
   cleaning_summary: Record<string, any>;
+  columns?: ColumnProfileItem[];
+  quality_report?: Record<string, any>;
   created_at: string;
 }
 

@@ -2,15 +2,21 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 
+import { ChartConfig } from '../lib/api';
+
 interface PlotlyChartProps {
-  data: any[];
-  layout: Record<string, any>;
+  data?: any[];
+  layout?: Record<string, any>;
+  config?: ChartConfig;
   className?: string;
 }
 
-export default function PlotlyChart({ data, layout, className }: PlotlyChartProps) {
+export default function PlotlyChart({ data, layout, config, className }: PlotlyChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
+
+  const chartData = config?.plotly_data || data || [];
+  const chartLayout = config?.plotly_layout || layout || {};
 
   useEffect(() => {
     let isMounted = true;
@@ -28,33 +34,33 @@ export default function PlotlyChart({ data, layout, className }: PlotlyChartProp
           paper_bgcolor: 'transparent',
           plot_bgcolor: 'transparent',
           font: {
-            color: '#94a3b8',
+            color: '#64748b',
             family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             size: 12,
           },
           xaxis: {
-            gridcolor: '#1e2436',
-            zerolinecolor: '#1e2436',
-            tickfont: { color: '#94a3b8' },
-            ...(layout.xaxis || {}),
+            gridcolor: '#e2e8f0',
+            zerolinecolor: '#cbd5e1',
+            tickfont: { color: '#64748b' },
+            ...(chartLayout.xaxis || {}),
           },
           yaxis: {
-            gridcolor: '#1e2436',
-            zerolinecolor: '#1e2436',
-            tickfont: { color: '#94a3b8' },
-            ...(layout.yaxis || {}),
+            gridcolor: '#e2e8f0',
+            zerolinecolor: '#cbd5e1',
+            tickfont: { color: '#64748b' },
+            ...(chartLayout.yaxis || {}),
           },
-          ...layout,
+          ...chartLayout,
         };
 
-        const config: any = {
+        const plotlyOpts: any = {
           responsive: true,
           displayModeBar: true,
           displaylogo: false,
           modeBarButtonsToRemove: ['lasso2d', 'select2d'],
         };
 
-        await Plotly.react(containerRef.current, data, mergedLayout, config);
+        await Plotly.react(containerRef.current, chartData, mergedLayout, plotlyOpts);
         if (isMounted) setLoading(false);
       } catch (err) {
         console.error('Failed to render Plotly chart:', err);
