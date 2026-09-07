@@ -257,7 +257,7 @@ def investigate_correlation_finding(
     
     if not dimension_col:
         # Find first suitable categorical column
-        cat_cols = df.select_dtypes(include=["object", "category"]).columns
+        cat_cols = df.select_dtypes(include=["object", "category", "string"]).columns
         if len(cat_cols) > 0:
             dimension_col = cat_cols[0]
 

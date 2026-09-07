@@ -65,8 +65,12 @@ def calculate_correlations(df: pd.DataFrame, min_threshold: float = 0.5) -> Dict
     """
     numeric_df = df.select_dtypes(include=[np.number])
     
-    # Exclude constant columns
-    valid_cols = [c for c in numeric_df.columns if numeric_df[c].std() > 0]
+    # Exclude constant or insufficient variance columns safely
+    valid_cols = []
+    for c in numeric_df.columns:
+        s = numeric_df[c].dropna()
+        if len(s) > 1 and s.std() > 0:
+            valid_cols.append(c)
     numeric_df = numeric_df[valid_cols]
 
     if numeric_df.shape[1] < 2 or len(numeric_df) < 3:

@@ -1,5 +1,5 @@
 # 📊 DataSense AI - System Benchmark & Reliability Scorecard
-**Generated:** `07/09/2026 13:53:46 IST` | **Standard:** `Indian Standards (INR ₹, Indian Numbering 2,2,3, DD/MM/YYYY)` | **Version:** `1.0.0 (Phase 3 Production Ready)`
+**Generated:** `07/09/2026 14:35:58 IST` | **Standard:** `Indian Standards (INR ₹, Indian Numbering 2,2,3, DD/MM/YYYY)` | **Version:** `1.0.0 (Phase 3 Production Ready)`
 
 ---
 ## 🏆 1. Executive Summary & System Verification
@@ -11,7 +11,7 @@
 | **Fact-Check Verification Rate** | `100.0%` | 100.0% | ✅ **PASSED** |
 | **Hallucination Rate** | `0.0%` | 0.0% | ✅ **ZERO HALLUCINATIONS** |
 | **Stress Resilience Pass Rate** | `4/4` (`100.0%`) | 100% | ✅ **STABLE** |
-| **Average Pipeline Latency** | `0.25s` | < 10.0s | ✅ **HIGH SPEED** |
+| **Average Pipeline Latency** | `0.24s` | < 10.0s | ✅ **HIGH SPEED** |
 
 ---
 ## 📦 2. Multi-Domain Benchmark Evaluations
@@ -21,8 +21,8 @@ Detailed agent pipeline performance across Retail (INR financial), Marketing, an
 | Benchmark Dataset | Columns | Data Health | Grade | Verified Insights | Fact-Check Match | Latency | Status |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Indian Retail & Consumer Goods** | 8 cols | 90.5% | `Excellent (A)` | 4/4 | 100.0% | 0.23s | ✅ Passed |
-| **Omnichannel Marketing Campaigns** | 8 cols | 97.2% | `Excellent (A)` | 4/4 | 100.0% | 0.26s | ✅ Passed |
-| **Patient Health Diagnostics** | 9 cols | 100.0% | `Excellent (A)` | 4/4 | 100.0% | 0.26s | ✅ Passed |
+| **Omnichannel Marketing Campaigns** | 8 cols | 97.2% | `Excellent (A)` | 4/4 | 100.0% | 0.24s | ✅ Passed |
+| **Patient Health Diagnostics** | 9 cols | 100.0% | `Excellent (A)` | 4/4 | 100.0% | 0.25s | ✅ Passed |
 
 ---
 ## 🛡️ 3. Adversarial Stress-Testing Matrix
