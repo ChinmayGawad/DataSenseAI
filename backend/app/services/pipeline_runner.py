@@ -17,6 +17,7 @@ for p in [str(ROOT_DIR), str(ROOT_DIR / "harness"), str(ROOT_DIR / "core-ml")]:
 
 from harness.workflows.investigation_pipeline import run_investigation_pipeline
 from harness.workflows.deep_dive import run_deep_dive_investigation
+from why_engine.orchestrator import run_why_investigation
 from .job_store import job_store
 from .storage_service import storage_service
 
@@ -118,7 +119,7 @@ def execute_investigation_pipeline(job_id: str, file_path: Path, filename: str) 
     for idx, ins in enumerate(raw_insights):
         formatted_insights.append({
             "id": ins.get("id", f"insight_{idx + 1}"),
-            "title": ins.get("title", f"Insight #{idx + 1}"),
+            "title": ins.get("title") or ins.get("headline") or f"Insight #{idx + 1}",
             "statement": ins.get("statement", ins.get("content", "")),
             "category": ins.get("category", "trend"),
             "importance": ins.get("importance", "high"),
@@ -130,7 +131,60 @@ def execute_investigation_pipeline(job_id: str, file_path: Path, filename: str) 
             "confidence_score": float(ins.get("confidence_score", 0.98)),
         })
 
-    # 4. Construct KPI Summary Cards
+    # 4. Construct Dynamic Domain & Quality KPI Cards from Actual Dataset
+    domain_kpi_cards = []
+    try:
+        df_for_kpis = storage_service.load_dataframe(file_path)
+        num_cols = df_for_kpis.select_dtypes(include=["number"]).columns.tolist()
+        candidate_cols = [
+            c for c in num_cols 
+            if not c.lower().endswith("id") 
+            and "patient" not in c.lower() 
+            and "order" not in c.lower() 
+            and "campaign" not in c.lower()
+            and "unnamed" not in c.lower()
+            and "row" not in c.lower()
+        ]
+        for col in candidate_cols[:2]:
+            s = df_for_kpis[col].dropna()
+            if len(s) == 0:
+                continue
+            total_val = float(s.sum())
+            mean_val = float(s.mean())
+            clean_title = col.replace("_", " ").title()
+            is_currency = any(kw in col.lower() for kw in ["sales", "profit", "revenue", "spend", "cost", "price", "budget", "amount", "fee"])
+
+            if is_currency:
+                if total_val >= 1e7:
+                    val_str = f"₹{total_val / 1e7:.2f} Cr"
+                elif total_val >= 1e5:
+                    val_str = f"₹{total_val / 1e5:.2f} L"
+                else:
+                    val_str = f"₹{total_val:,.0f}"
+                label_str = f"Total {clean_title}"
+                subtext_str = f"Avg ₹{mean_val:,.1f} per entry"
+            else:
+                if total_val > 500 and "rate" not in col.lower() and "score" not in col.lower() and "bp" not in col.lower() and "age" not in col.lower():
+                    val_str = f"{total_val:,.0f}"
+                    label_str = f"Total {clean_title}"
+                    subtext_str = f"Avg {mean_val:.1f} per entry"
+                else:
+                    val_str = f"{mean_val:.1f}"
+                    label_str = f"Avg {clean_title}"
+                    subtext_str = f"Range: {s.min():.1f} – {s.max():.1f}"
+
+            domain_kpi_cards.append({
+                "id": f"kpi_{col}",
+                "label": label_str,
+                "value": val_str,
+                "delta": "+Active",
+                "subtext": subtext_str,
+                "status": "normal",
+                "icon": "TrendingUp"
+            })
+    except Exception:
+        pass
+
     outlier_info = ml.get("outlier_analysis", {})
     total_outliers = outlier_info.get("total_outliers", 0)
     outlier_pct = outlier_info.get("outlier_percentage", 0.0)
@@ -140,6 +194,7 @@ def execute_investigation_pipeline(job_id: str, file_path: Path, filename: str) 
     sil_score = clust_info.get("silhouette_avg", 0.0)
 
     summary_cards = [
+        *domain_kpi_cards,
         {
             "id": "card_health",
             "label": "Data Health Score",
@@ -220,5 +275,15 @@ def execute_investigation_pipeline(job_id: str, file_path: Path, filename: str) 
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
     job_store.save_dashboard(job_id, dashboard_data)
+
+    # Automatically compute and pre-cache Why? Engine root-cause analysis
+    try:
+        import pandas as pd
+        raw_df = pd.read_csv(file_path) if str(file_path).endswith('.csv') else pd.read_excel(file_path)
+        why_data = run_why_investigation(raw_df)
+        why_data["job_id"] = job_id
+        job_store.save_why_analysis(job_id, why_data)
+    except Exception:
+        pass
 
     return dashboard_data

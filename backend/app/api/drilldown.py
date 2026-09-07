@@ -1,9 +1,10 @@
 """
 Drilldown API endpoint.
-Powers the unique "Investigate This Finding" deep dive button via DeepSeek Harness Deep Dive workflow.
+Powers the unique "Investigate This Finding" deep dive button via DeepSeek Harness Deep Dive workflow,
+with multi-tenant boundary verification.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pathlib import Path
 import sys
 
@@ -15,19 +16,26 @@ for p in [str(ROOT_DIR), str(ROOT_DIR / "harness"), str(ROOT_DIR / "core-ml")]:
 from harness.workflows.deep_dive import run_deep_dive_investigation
 from ..schemas.dashboard import DrilldownRequest, DrilldownResponse, ChartConfig
 from ..services.job_store import job_store
+from ..core.auth import TenantUser, get_current_tenant_user, verify_tenant_access
 
 router = APIRouter(prefix="", tags=["Deep Dive & Drilldown"])
 
 
 @router.post("/drilldown", response_model=DrilldownResponse)
-async def investigate_finding(payload: DrilldownRequest):
+async def investigate_finding(
+    payload: DrilldownRequest,
+    current_user: TenantUser = Depends(get_current_tenant_user)
+):
     """
     Executes a targeted, deep-dive investigation into a specific finding or anomaly
     using the DeepSeek Harness deep-dive root-cause workflow.
+    Enforces multi-tenant authorization.
     """
     job = job_store.get_job(payload.job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Investigation job not found")
+
+    verify_tenant_access(current_user, job.get("tenant_id"))
 
     dashboard = job_store.get_dashboard(payload.job_id)
     if not dashboard:

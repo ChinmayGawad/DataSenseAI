@@ -11,6 +11,8 @@ import {
   Lightbulb,
   DownloadCloud,
   BarChart,
+  GitFork,
+  X,
 } from 'lucide-react';
 
 export type NavView =
@@ -20,6 +22,7 @@ export type NavView =
   | 'profile'
   | 'cleaning'
   | 'dashboard'
+  | 'why'
   | 'insights'
   | 'export';
 
@@ -28,6 +31,8 @@ interface SidebarProps {
   onNavigate: (view: NavView) => void;
   hasDataset: boolean;
   hasAnalyzed: boolean;
+  isMobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
 export default function Sidebar({
@@ -35,6 +40,8 @@ export default function Sidebar({
   onNavigate,
   hasDataset,
   hasAnalyzed,
+  isMobileOpen = false,
+  onCloseMobile,
 }: SidebarProps) {
   const navItems = [
     { id: 'landing' as NavView, label: 'Home', icon: Home, enabled: true },
@@ -43,28 +50,40 @@ export default function Sidebar({
     { id: 'cleaning' as NavView, label: 'Cleaning', icon: Sparkles, enabled: hasDataset },
     { id: 'analysis' as NavView, label: 'Analysis', icon: BarChart3, enabled: hasDataset },
     { id: 'dashboard' as NavView, label: 'Dashboard', icon: LayoutDashboard, enabled: hasAnalyzed },
+    { id: 'why' as NavView, label: 'Why? Engine', icon: GitFork, enabled: hasAnalyzed },
     { id: 'insights' as NavView, label: 'Insights', icon: Lightbulb, enabled: hasAnalyzed },
     { id: 'export' as NavView, label: 'Export', icon: DownloadCloud, enabled: hasAnalyzed },
   ];
 
-  return (
-    <aside className="w-60 bg-[#0c1815] text-slate-300 flex flex-col justify-between shrink-0 border-r border-[#172e27] min-h-[100dvh]">
+  const sidebarContent = (
+    <div className="flex flex-col justify-between h-full">
       <div>
         {/* Brand Logo */}
-        <div className="p-6 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-            <BarChart className="w-5 h-5 fill-emerald-400 text-emerald-400" />
+        <div className="p-6 flex items-center justify-between border-b border-[#172e27]">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shadow-xs">
+              <BarChart className="w-5 h-5 fill-emerald-400 text-emerald-400" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-bold text-white text-lg tracking-tight">DataSense AI</span>
+              <span className="text-[10px] text-emerald-400 font-mono tracking-wider uppercase">
+                Multi-Agent Runtime
+              </span>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <span className="font-bold text-white text-lg tracking-tight">InsightFlow</span>
-            <span className="text-[10px] text-emerald-400 font-mono tracking-wider uppercase">
-              DataSense AI
-            </span>
-          </div>
+
+          {onCloseMobile && (
+            <button
+              onClick={onCloseMobile}
+              className="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Navigation Items */}
-        <nav className="px-3 py-2 space-y-1">
+        <nav className="px-3 py-4 space-y-1.5">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentView === item.id;
@@ -73,7 +92,12 @@ export default function Sidebar({
             return (
               <button
                 key={item.id}
-                onClick={() => isEnabled && onNavigate(item.id)}
+                onClick={() => {
+                  if (isEnabled) {
+                    onNavigate(item.id);
+                    if (onCloseMobile) onCloseMobile();
+                  }
+                }}
                 disabled={!isEnabled}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
                   isActive
@@ -105,6 +129,30 @@ export default function Sidebar({
           <p className="text-[10px] text-slate-400 mt-0.5">8 AI Agents Active & Fact-Checked</p>
         </div>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop Persistent Sidebar */}
+      <aside className="hidden md:flex w-60 bg-[#0c1815] text-slate-300 flex-col shrink-0 border-r border-[#172e27] min-h-[100dvh]">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile Drawer Overlay */}
+      {isMobileOpen && (
+        <div 
+          className="fixed inset-0 z-50 md:hidden bg-black/60 backdrop-blur-xs flex animate-in fade-in duration-200"
+          onClick={onCloseMobile}
+        >
+          <aside 
+            className="w-72 max-w-[85vw] bg-[#0c1815] text-slate-300 flex flex-col h-full shadow-2xl border-r border-[#172e27] animate-in slide-in-from-left duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {sidebarContent}
+          </aside>
+        </div>
+      )}
+    </>
   );
 }

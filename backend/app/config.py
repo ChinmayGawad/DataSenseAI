@@ -27,7 +27,11 @@ class Settings(BaseModel):
     # Upload storage
     LOCAL_UPLOAD_DIR: Path = UPLOAD_DIR
     MAX_UPLOAD_SIZE_MB: int = 50
-    ALLOWED_EXTENSIONS: set[str] = {".csv", ".xlsx", ".xls"}
+    ALLOWED_EXTENSIONS: set[str] = {
+        ".csv", ".tsv", ".xlsx", ".xls", ".json", ".jsonl",
+        ".txt", ".pdf", ".docx", ".pptx", ".png", ".jpg",
+        ".jpeg", ".webp", ".tiff"
+    }
     
     # Supabase (Optional fallback to local storage)
     SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
@@ -37,4 +41,16 @@ class Settings(BaseModel):
     # Harness Service URL (Microservice bridge)
     HARNESS_SERVICE_URL: str = os.getenv("HARNESS_SERVICE_URL", "http://localhost:4000")
 
+    # Enterprise Multi-Tenant Authentication & JWT
+    AUTH_ENABLED: bool = os.getenv("AUTH_ENABLED", "false").lower() in ("1", "true", "yes")
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "datasense-enterprise-jwt-secret-token-key-2026")
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
+
+    # Distributed Task Queue & Worker Mode ("background" or "celery")
+    WORKER_MODE: str = os.getenv("WORKER_MODE", "background").lower()
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    USE_REDIS_STORE: bool = os.getenv("USE_REDIS_STORE", "false").lower() in ("1", "true", "yes")
+
 settings = Settings()
+

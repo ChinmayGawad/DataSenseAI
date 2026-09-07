@@ -1,0 +1,121 @@
+name: DataSense AI Enterprise CI & Cross-Browser E2E
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  backend-qa-and-benchmarks:
+    name: Backend QA, Multi-Tenancy & Dev-Harness Benchmarks
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Install Backend Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest httpx
+
+      - name: Run Pytest Comprehensive Verification Suite
+        run: |
+          python -m pytest tests/ -v
+
+      - name: Run Autonomous Multi-Agent Dev-Harness Benchmarks
+        run: |
+          python -X utf8 dev-harness/cli.py --all
+
+  frontend-build:
+    name: Frontend Turbopack Build & TypeScript Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: |
+          npm install
+
+      - name: Next.js Production Build
+        working-directory: ./frontend
+        run: |
+          npm run build
+
+  e2e-playwright:
+    name: Headless Playwright Cross-Browser & Mobile E2E
+    runs-on: ubuntu-latest
+    needs: [backend-qa-and-benchmarks, frontend-build]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Backend & Boot Microservice
+        run: |
+          pip install -r backend/requirements.txt
+          nohup python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 > backend.log 2>&1 &
+          sleep 3
+          curl --fail http://127.0.0.1:8000/health || (cat backend.log && exit 1)
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: |
+          npm install
+
+      - name: Install Playwright Browsers with OS Dependencies
+        working-directory: ./frontend
+        run: |
+          npx playwright install --with-deps
+
+      - name: Run Playwright Cross-Browser E2E Tests
+        working-directory: ./frontend
+        env:
+          NEXT_PUBLIC_API_URL: "http://127.0.0.1:8000/api"
+          CI: "true"
+        run: |
+          npm run build
+          npx playwright test --reporter=list
+
+      - name: Upload Playwright Test Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 14

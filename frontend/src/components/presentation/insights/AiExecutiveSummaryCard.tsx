@@ -3,13 +3,24 @@
 import React from 'react';
 import { Sparkles, FileDown } from 'lucide-react';
 
+import { FactCheckedInsight } from '../../../lib/api';
+
 interface AiExecutiveSummaryCardProps {
+  insights?: FactCheckedInsight[];
+  datasetName?: string;
+  totalObservations?: string | number;
   onDownloadPdf?: () => void;
 }
 
 export default function AiExecutiveSummaryCard({
+  insights,
+  datasetName,
+  totalObservations,
   onDownloadPdf = () => window.print(),
 }: AiExecutiveSummaryCardProps) {
+  const topInsight = insights && insights.length > 0 ? insights[0] : null;
+  const secondaryInsight = insights && insights.length > 1 ? insights[1] : null;
+
   return (
     <div className="p-6 sm:p-7 rounded-3xl bg-white border border-slate-200/90 shadow-sm space-y-5">
       <div className="flex items-center gap-3">
@@ -18,17 +29,37 @@ export default function AiExecutiveSummaryCard({
         </div>
         <div>
           <h4 className="font-bold text-slate-900 text-sm">AI Executive Summary</h4>
-          <p className="text-[11px] text-slate-400">Synthesized by 8 specialized agents</p>
+          <p className="text-[11px] text-slate-400">
+            {datasetName ? `Synthesized for ${datasetName}` : 'Synthesized by 8 specialized agents'}
+          </p>
         </div>
       </div>
 
       <div className="text-xs sm:text-sm text-slate-700 leading-relaxed space-y-3">
-        <p>
-          Across <strong>5,320 observations</strong>, top-line sales grew <strong>22.4%</strong> quarter-over-quarter, driven primarily by high-demand Technology products in the Western region.
-        </p>
-        <p>
-          However, excessive discounting (&gt;25%) in Furniture eroded <strong>-₹14,204</strong> in cumulative net margin. Implementing automated discount ceilings is projected to recover approximately <strong>₹28,000</strong> in annual operating income.
-        </p>
+        {topInsight ? (
+          <>
+            <p>
+              {totalObservations && (
+                <>Across <strong>{totalObservations} observations</strong>, </>
+              )}
+              {topInsight.statement}
+            </p>
+            {secondaryInsight && (
+              <p>
+                {secondaryInsight.statement}
+              </p>
+            )}
+          </>
+        ) : (
+          <>
+            <p>
+              Across <strong>5,320 observations</strong>, top-line sales grew <strong>22.4%</strong> quarter-over-quarter, driven primarily by high-demand Technology products in the Western region.
+            </p>
+            <p>
+              However, excessive discounting (&gt;25%) in Furniture eroded <strong>-₹14,204</strong> in cumulative net margin. Implementing automated discount ceilings is projected to recover approximately <strong>₹28,000</strong> in annual operating income.
+            </p>
+          </>
+        )}
       </div>
 
       <div className="pt-2 border-t border-slate-100 space-y-3">

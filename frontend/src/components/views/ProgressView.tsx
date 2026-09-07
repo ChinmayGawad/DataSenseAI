@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Sparkles, ArrowRight } from 'lucide-react';
+import { Sparkles, ArrowRight, AlertCircle, RotateCcw } from 'lucide-react';
 import CircularProgress from '../ui/CircularProgress';
 import ProgressChecklist from '../presentation/progress/ProgressChecklist';
 import ProgressTipCard from '../presentation/progress/ProgressTipCard';
@@ -10,9 +10,35 @@ import { JobStatusResponse } from '../../lib/api';
 interface ProgressViewProps {
   jobStatus: JobStatusResponse | null;
   onViewDashboard?: () => void;
+  onRetry?: () => void;
 }
 
-export default function ProgressView({ jobStatus, onViewDashboard }: ProgressViewProps) {
+export default function ProgressView({ jobStatus, onViewDashboard, onRetry }: ProgressViewProps) {
+  if (jobStatus?.status === 'failed') {
+    return (
+      <div className="w-full max-w-xl mx-auto py-12 px-4 text-center space-y-6 animate-in fade-in duration-300">
+        <div className="w-14 h-14 mx-auto rounded-2xl bg-red-100 text-red-600 flex items-center justify-center border border-red-200 shadow-xs">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold text-slate-900">Investigation Interrupted</h2>
+          <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+            {jobStatus.error_message || 'The autonomous pipeline encountered an unrecoverable error during data processing.'}
+          </p>
+        </div>
+        {onRetry && (
+          <button
+            onClick={onRetry}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-all shadow-xs cursor-pointer"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span>Try Another Dataset</span>
+          </button>
+        )}
+      </div>
+    );
+  }
+
   const currentProgress = jobStatus ? Math.min(Math.max(jobStatus.progress_percentage, 5), 100) : 60;
   const isCompleted = jobStatus?.status === 'completed' || currentProgress >= 100;
 

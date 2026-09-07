@@ -4,13 +4,14 @@ import React, { useState } from 'react';
 import Sidebar, { NavView } from '../components/Sidebar';
 import TopHeader from '../components/TopHeader';
 
-// 8 Modular Views
+// 9 Modular Views
 import LandingView from '../components/views/LandingView';
 import UploadView from '../components/views/UploadView';
 import ProgressView from '../components/views/ProgressView';
 import DataProfileView from '../components/views/DataProfileView';
 import CleaningView from '../components/views/CleaningView';
 import DashboardView from '../components/views/DashboardView';
+import WhyEngineView from '../components/views/WhyEngineView';
 import InsightsView from '../components/views/InsightsView';
 import ExportView from '../components/views/ExportView';
 import DatasetChatModal from '../components/presentation/chat/DatasetChatModal';
@@ -22,6 +23,8 @@ import { useInvestigation } from '../hooks/useInvestigation';
 export default function Home() {
   const [currentView, setCurrentView] = useState<NavView>('landing');
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [focusedWhyMetric, setFocusedWhyMetric] = useState<string | undefined>(undefined);
 
   // Custom Hooks encapsulating API and state logic
   const {
@@ -69,12 +72,14 @@ export default function Home() {
   // Screens 2 - 8: Multi-View Dashboard with Persistent Sidebar Navigation
   return (
     <div className="flex min-h-[100dvh] bg-[#f5f8f7] text-slate-800 antialiased selection:bg-emerald-500/20 selection:text-emerald-900">
-      {/* Persistent Left Navigation Sidebar */}
+      {/* Persistent Left Navigation Sidebar & Mobile Drawer */}
       <Sidebar
         currentView={currentView}
         onNavigate={(view) => setCurrentView(view)}
         hasDataset={!!uploadedDataset || !!dashboardData}
         hasAnalyzed={!!dashboardData}
+        isMobileOpen={isMobileMenuOpen}
+        onCloseMobile={() => setIsMobileMenuOpen(false)}
       />
 
       {/* Main App Canvas */}
@@ -86,6 +91,7 @@ export default function Home() {
           showTimeFilter={currentView === 'dashboard'}
           onOpenChat={() => setIsChatOpen(true)}
           canChat={!!dashboardData || !!jobStatus?.job_id || !!uploadedDataset}
+          onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
 
         {/* Dynamic View Router */}
@@ -104,6 +110,7 @@ export default function Home() {
             <ProgressView
               jobStatus={jobStatus}
               onViewDashboard={() => setCurrentView('dashboard')}
+              onRetry={handleReset}
             />
           )}
 
@@ -126,6 +133,18 @@ export default function Home() {
             <DashboardView
               dashboard={dashboardData}
               onNavigateToInsights={() => setCurrentView('insights')}
+              onNavigateToWhy={(metric?: string) => {
+                if (metric) setFocusedWhyMetric(metric);
+                setCurrentView('why');
+              }}
+            />
+          )}
+
+          {currentView === 'why' && (
+            <WhyEngineView
+              jobId={dashboardData?.job_id || jobStatus?.job_id || 'sample-job'}
+              initialTargetMetric={focusedWhyMetric}
+              onNavigateToDashboard={() => setCurrentView('dashboard')}
             />
           )}
 
@@ -133,6 +152,10 @@ export default function Home() {
             <InsightsView
               dashboard={dashboardData}
               onProceedToExport={() => setCurrentView('export')}
+              onNavigateToWhy={(metric?: string) => {
+                if (metric) setFocusedWhyMetric(metric);
+                setCurrentView('why');
+              }}
             />
           )}
 

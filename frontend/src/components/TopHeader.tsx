@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Bell, ChevronDown, Calendar, RotateCcw, Sparkles } from 'lucide-react';
+import { Bell, ChevronDown, Calendar, RotateCcw, Sparkles, Menu } from 'lucide-react';
 
 interface TopHeaderProps {
   currentView: string;
@@ -9,20 +9,40 @@ interface TopHeaderProps {
   showTimeFilter?: boolean;
   onOpenChat?: () => void;
   canChat?: boolean;
+  onToggleMobileMenu?: () => void;
 }
 
-export default function TopHeader({ currentView, onReset, showTimeFilter, onOpenChat, canChat }: TopHeaderProps) {
+export default function TopHeader({
+  currentView,
+  onReset,
+  showTimeFilter,
+  onOpenChat,
+  canChat,
+  onToggleMobileMenu,
+}: TopHeaderProps) {
   return (
-    <header className="h-16 px-6 border-b border-slate-200/80 bg-white flex items-center justify-between shrink-0">
-      {/* View indicator */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-          DataSense AI
-        </span>
-        <span className="text-slate-300">/</span>
-        <span className="text-xs font-semibold text-slate-700 capitalize">
-          {currentView.replace('_', ' ')}
-        </span>
+    <header className="h-16 px-4 sm:px-6 border-b border-slate-200/80 bg-white flex items-center justify-between shrink-0">
+      {/* Mobile Menu Button & View indicator */}
+      <div className="flex items-center gap-3">
+        {onToggleMobileMenu && (
+          <button
+            onClick={onToggleMobileMenu}
+            className="md:hidden p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+            title="Open navigation menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            DataSense AI
+          </span>
+          <span className="text-slate-300">/</span>
+          <span className="text-xs font-semibold text-slate-700 capitalize">
+            {currentView.replace('_', ' ')}
+          </span>
+        </div>
       </div>
 
       {/* Right Controls */}

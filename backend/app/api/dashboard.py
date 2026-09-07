@@ -1,10 +1,10 @@
 """
 Dashboard API endpoints.
 Provides the self-designing dashboard JSON configuration containing Plotly specs,
-fact-checked insights, summary KPI metrics, and cleaned dataset export.
+fact-checked insights, summary KPI metrics, and cleaned dataset export with multi-tenant scoping.
 """
 
-from fastapi import APIRouter, HTTPException, Query, Response
+from fastapi import APIRouter, HTTPException, Query, Response, Depends
 from pathlib import Path
 import sys
 
@@ -17,20 +17,27 @@ from harness.exporters.data_exporter import export_cleaned_dataset, export_clean
 from ..schemas.dashboard import DashboardResponse
 from ..services.job_store import job_store
 from ..services.storage_service import storage_service
+from ..core.auth import TenantUser, get_current_tenant_user, verify_tenant_access
 import cleaning_engine
 
 router = APIRouter(prefix="", tags=["Dashboard & Visualizations"])
 
 
 @router.get("/dashboard/{job_id}", response_model=DashboardResponse)
-async def get_dashboard(job_id: str):
+async def get_dashboard(
+    job_id: str,
+    current_user: TenantUser = Depends(get_current_tenant_user)
+):
     """
     Retrieves the generated dynamic dashboard for a completed investigation job.
     Includes Plotly configurations, why-chosen rationales, and verified insights.
+    Enforces multi-tenant authorization.
     """
     job = job_store.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
+
+    verify_tenant_access(current_user, job.get("tenant_id"))
 
     if job["status"] != "completed":
         raise HTTPException(
@@ -48,14 +55,18 @@ async def get_dashboard(job_id: str):
 @router.get("/export/{job_id}")
 async def export_dataset_endpoint(
     job_id: str,
-    format: str = Query("csv", description="Export format: csv, json, parquet, markdown")
+    format: str = Query("csv", description="Export format: csv, json, parquet, markdown"),
+    current_user: TenantUser = Depends(get_current_tenant_user)
 ):
     """
     Downloads the cleaned, standardized dataset or the markdown cleaning audit trail.
+    Enforces multi-tenant authorization.
     """
     job = job_store.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
+
+    verify_tenant_access(current_user, job.get("tenant_id"))
 
     dataset_info = job_store.get_dataset(job["dataset_id"])
     if not dataset_info or not dataset_info.get("file_path"):

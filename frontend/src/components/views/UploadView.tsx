@@ -1,10 +1,11 @@
 'use client';
 
 import React from 'react';
-import { Sparkles, AlertCircle } from 'lucide-react';
+import { Sparkles, AlertCircle, FileCheck, Layers } from 'lucide-react';
 import { DatasetUploadResponse } from '../../lib/api';
 import DropzoneCard from '../presentation/upload/DropzoneCard';
 import FilePreviewBadge from '../presentation/upload/FilePreviewBadge';
+import DocumentExtractionSummary from '../presentation/upload/DocumentExtractionSummary';
 import SampleBenchmarksRow from '../presentation/upload/SampleBenchmarksRow';
 
 interface UploadViewProps {
@@ -73,13 +74,13 @@ export default function UploadView({
       <div className="text-center space-y-2">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-xs font-semibold">
           <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-          Step 1: Dataset Ingestion
+          Universal Ingestion & Extraction Engine
         </div>
         <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-          Upload Your Dataset
+          Upload Any Business Document
         </h2>
-        <p className="text-sm text-slate-500 max-w-lg mx-auto">
-          Upload any spreadsheet to automatically clean, profile, detect anomalies, and generate verified visual dashboards.
+        <p className="text-sm text-slate-500 max-w-xl mx-auto">
+          Convert PDFs, Scanned Reports, Handwritten Forms, Word Docs, Spreadsheets, and Images into normalized, analyzable data with confidence scoring.
         </p>
       </div>
 
@@ -101,7 +102,12 @@ export default function UploadView({
         </div>
       )}
 
-      {/* Presentation Module 2: File Preview Badge */}
+      {/* Presentation Module 2: Document Extraction Summary (When uploaded) */}
+      {uploadedDataset && (
+        <DocumentExtractionSummary dataset={uploadedDataset} />
+      )}
+
+      {/* Presentation Module 3: File Preview Badge & Analysis Trigger */}
       <FilePreviewBadge
         dataset={uploadedDataset}
         file={localFile}
@@ -109,7 +115,7 @@ export default function UploadView({
         isUploading={isUploading}
       />
 
-      {/* Presentation Module 3: Benchmark Samples */}
+      {/* Presentation Module 4: Benchmark Samples */}
       <SampleBenchmarksRow onSelectSample={onSelectSample} />
     </div>
   );

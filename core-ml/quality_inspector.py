@@ -20,7 +20,8 @@ class QualityReport:
         columns_with_missing: List[Dict[str, Any]],
         constant_columns: List[str],
         issues_summary: List[str],
-        quality_grade: str
+        quality_grade: str,
+        extraction_audit: Optional[Dict[str, Any]] = None
     ):
         self.health_score = health_score
         self.total_rows = total_rows
@@ -31,6 +32,7 @@ class QualityReport:
         self.constant_columns = constant_columns
         self.issues_summary = issues_summary
         self.quality_grade = quality_grade
+        self.extraction_audit = extraction_audit or {}
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -43,12 +45,17 @@ class QualityReport:
             "columns_with_missing": self.columns_with_missing,
             "constant_columns": self.constant_columns,
             "issues_summary": self.issues_summary,
+            "extraction_audit": self.extraction_audit
         }
 
 
-def inspect_data_quality(df: pd.DataFrame) -> Dict[str, Any]:
+def inspect_data_quality(
+    df: pd.DataFrame,
+    extraction_metadata: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
     """
-    Performs data quality audit and outputs health score (0-100) with clear issues log.
+    Performs data quality audit and outputs health score (0-100) with clear issues log
+    and optional document OCR extraction uncertainty auditing.
     """
     total_rows = len(df)
     total_cols = len(df.columns)
@@ -88,28 +95,50 @@ def inspect_data_quality(df: pd.DataFrame) -> Dict[str, Any]:
             constant_cols.append(str(col))
             issues.append(f"Column '{col}' has zero variance (constant or entirely empty).")
 
-    # 4. Calculate Health Score (100 baseline)
-    # Penalties:
-    # - Missing values: up to 35 points penalty
-    # - Duplicates: up to 25 points penalty
-    # - Constant columns: up to 20 points penalty
+    # 4. OCR / Extraction Uncertainty Audit
+    extraction_audit = {}
+    ocr_penalty = 0.0
+    if extraction_metadata:
+        uncertain_fields = extraction_metadata.get("uncertain_fields", [])
+        overall_conf = extraction_metadata.get("extraction_confidence", 100.0)
+        has_hw = extraction_metadata.get("has_handwritten_content", False)
+
+        extraction_audit = {
+            "overall_confidence": overall_conf,
+            "has_handwritten_content": has_hw,
+            "uncertain_fields_count": len(uncertain_fields),
+            "uncertain_fields": uncertain_fields
+        }
+
+        if uncertain_fields:
+            issues.append(
+                f"⚠️ {len(uncertain_fields)} value(s) extracted with low OCR confidence (<70%). Verification recommended."
+            )
+            ocr_penalty += min(15.0, len(uncertain_fields) * 3.0)
+
+        if overall_conf < 85.0:
+            issues.append(
+                f"Document extraction confidence is {overall_conf}% due to scanned or handwriting noise."
+            )
+            ocr_penalty += min(10.0, (85.0 - overall_conf) * 0.5)
+
+    # 5. Calculate Health Score (100 baseline)
     score = 100.0
     
-    # Missing cells penalty (0% missing -> 0 penalty; 20% missing -> 25 penalty; 50% missing -> 35 penalty)
     missing_penalty = min(35.0, missing_cell_pct * 1.5)
     score -= missing_penalty
 
-    # Duplicates penalty
     if total_rows > 0:
         dup_pct = (duplicate_rows / total_rows) * 100
         dup_penalty = min(25.0, dup_pct * 2.0)
         score -= dup_penalty
 
-    # Constant columns penalty
     if total_cols > 0:
         const_pct = (len(constant_cols) / total_cols) * 100
         const_penalty = min(20.0, const_pct * 1.0)
         score -= const_penalty
+
+    score -= ocr_penalty
 
     score = max(0.0, min(100.0, round(score, 1)))
 
@@ -137,5 +166,6 @@ def inspect_data_quality(df: pd.DataFrame) -> Dict[str, Any]:
         constant_columns=constant_cols,
         issues_summary=issues,
         quality_grade=grade,
+        extraction_audit=extraction_audit
     )
     return report.to_dict()

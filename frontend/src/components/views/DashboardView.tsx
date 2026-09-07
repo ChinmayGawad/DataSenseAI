@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Sparkles, ChevronDown, Workflow } from 'lucide-react';
+import { Sparkles, ChevronDown, Workflow, GitFork, ArrowRight, Layers } from 'lucide-react';
 import { DashboardResponse, ChartConfig, DrilldownResponse } from '../../lib/api';
 import DrilldownModal from '../DrilldownModal';
 import KpiCardsGrid, { KpiItem } from '../presentation/dashboard/KpiCardsGrid';
@@ -10,6 +10,7 @@ import ChartCard from '../presentation/dashboard/ChartCard';
 interface DashboardViewProps {
   dashboard: DashboardResponse | null;
   onNavigateToInsights?: () => void;
+  onNavigateToWhy?: (metric?: string) => void;
 }
 
 const DEFAULT_KPIS: KpiItem[] = [
@@ -205,18 +206,71 @@ const DEFAULT_HEATMAP_CHART: ChartConfig = {
   key_takeaway: 'Sales and Profit exhibit high co-movement (+0.89), while higher Discounts negatively correlate with margins (-0.22).',
 };
 
-export default function DashboardView({ dashboard, onNavigateToInsights }: DashboardViewProps) {
+function getChartColSpan(
+  chart: ChartConfig,
+  index: number,
+  totalCharts: number,
+  displayCharts: ChartConfig[]
+): string {
+  const cType = (chart.chart_type || (chart as any).type || '').toLowerCase();
+  const inputs = chart.detected_inputs || '';
+
+  // Heatmap always takes full width (12 cols)
+  if (cType === 'heatmap' || inputs.includes('Multiple Numeric')) {
+    return 'lg:col-span-12';
+  }
+
+  // If there is only 1 chart, span full width
+  if (totalCharts === 1) {
+    return 'lg:col-span-12';
+  }
+
+  // If Line chart is followed by Bar chart, pair as 8 + 4
+  if ((cType === 'line' || inputs.includes('Date')) && index === 0 && totalCharts > 1) {
+    const nextChart = displayCharts[index + 1];
+    const nextType = (nextChart?.chart_type || (nextChart as any)?.type || '').toLowerCase();
+    const nextInputs = nextChart?.detected_inputs || '';
+    if (nextType === 'bar' || nextInputs.includes('Category')) {
+      return 'lg:col-span-8';
+    }
+  }
+  if ((cType === 'bar' || inputs.includes('Category')) && index === 1 && totalCharts > 1) {
+    const prevChart = displayCharts[index - 1];
+    const prevType = (prevChart?.chart_type || (prevChart as any)?.type || '').toLowerCase();
+    const prevInputs = prevChart?.detected_inputs || '';
+    if (prevType === 'line' || prevInputs.includes('Date')) {
+      return 'lg:col-span-4';
+    }
+  }
+
+  // If the last chart in an odd list (e.g. 3rd of 3, 5th of 5), span full width 12
+  if (totalCharts % 2 !== 0 && index === totalCharts - 1) {
+    return 'lg:col-span-12';
+  }
+
+  // All other charts take 6 cols (half width)
+  return 'lg:col-span-6';
+}
+
+export default function DashboardView({ dashboard, onNavigateToInsights, onNavigateToWhy }: DashboardViewProps) {
   const [timeHorizon, setTimeHorizon] = useState('Last 30 Days');
   const [activeWhyChart, setActiveWhyChart] = useState<string | null>(null);
   const [drilldownData, setDrilldownData] = useState<DrilldownResponse | null>(null);
 
-  const charts = dashboard?.charts && dashboard.charts.length > 0 ? dashboard.charts : [];
+  const kpis: KpiItem[] = (dashboard?.summary_cards && dashboard.summary_cards.length > 0)
+    ? dashboard.summary_cards.slice(0, 4).map((c, i) => ({
+        id: c.id || `kpi_${i}`,
+        label: c.label,
+        value: c.value,
+        delta: c.delta || 'Active',
+        isPositive: c.status === 'alert' ? false : !c.delta?.startsWith('-'),
+        subtext: c.subtext || '',
+      }))
+    : DEFAULT_KPIS;
 
-  const lineChart = charts.find((c) => c.chart_type === 'line' || c.detected_inputs?.includes('Date')) || DEFAULT_LINE_CHART;
-  const barChart = charts.find((c) => c.chart_type === 'bar' || c.detected_inputs?.includes('Category')) || DEFAULT_BAR_CHART;
-  const scatterChart = charts.find((c) => c.chart_type === 'scatter' || c.detected_inputs === 'Numeric + Numeric') || DEFAULT_SCATTER_CHART;
-  const histChart = charts.find((c) => c.chart_type === 'histogram' || c.detected_inputs?.includes('Single Numeric')) || DEFAULT_HISTOGRAM_CHART;
-  const heatmapChart = charts.find((c) => c.chart_type === 'heatmap' || c.detected_inputs?.includes('Multiple Numeric')) || DEFAULT_HEATMAP_CHART;
+  const displayCharts: ChartConfig[] = (dashboard?.charts && dashboard.charts.length > 0)
+    ? dashboard.charts
+    : [DEFAULT_LINE_CHART, DEFAULT_BAR_CHART, DEFAULT_SCATTER_CHART, DEFAULT_HISTOGRAM_CHART, DEFAULT_HEATMAP_CHART];
 
   return (
     <div className="w-full max-w-7xl mx-auto py-6 px-4 sm:px-6 space-y-8 animate-in fade-in duration-300">
@@ -228,33 +282,46 @@ export default function DashboardView({ dashboard, onNavigateToInsights }: Dashb
             Autonomous Visualization Engine
           </div>
           <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-            Insight Dashboard
+            Insight Dashboard{dashboard?.dataset_name ? ` • ${dashboard.dataset_name}` : ''}
           </h2>
           <p className="text-sm text-slate-500 mt-1">
-            Auto-generated visual analytics with explainable AI reasoning.
+            {dashboard?.dataset_name
+              ? `Auto-generated visual analytics for ${dashboard.dataset_name} with explainable AI reasoning.`
+              : 'Auto-generated visual analytics with explainable AI reasoning.'}
           </p>
         </div>
 
-        {/* Time Horizon Filter Dropdown */}
+        {/* Action Controls & Why Button */}
         <div className="flex items-center gap-3">
+          {onNavigateToWhy && (
+            <button
+              onClick={() => onNavigateToWhy()}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#13332a] hover:bg-[#194237] text-white text-xs font-bold border border-emerald-500/30 transition-all shadow-sm cursor-pointer"
+            >
+              <GitFork className="w-4 h-4 text-emerald-400" />
+              <span>Launch Why? Engine</span>
+            </button>
+          )}
+
+          {/* Time Horizon Filter Dropdown */}
           <div className="relative inline-flex items-center">
             <select
               value={timeHorizon}
               onChange={(e) => setTimeHorizon(e.target.value)}
-              className="appearance-none bg-white border border-slate-200/90 text-slate-700 text-xs font-semibold py-2.5 pl-4 pr-9 rounded-xl shadow-2xs hover:border-slate-300 focus:outline-none focus:border-emerald-500 cursor-pointer"
+              className="appearance-none bg-white border border-slate-200/90 text-slate-700 text-xs font-semibold py-2 pl-3.5 pr-8 rounded-xl shadow-2xs hover:border-slate-300 focus:outline-none focus:border-emerald-500 cursor-pointer"
             >
               <option>Last 30 Days</option>
               <option>Last Quarter</option>
               <option>Year to Date</option>
               <option>All Time</option>
             </select>
-            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 pointer-events-none" />
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none" />
           </div>
 
           {onNavigateToInsights && (
             <button
               onClick={onNavigateToInsights}
-              className="px-4 py-2.5 rounded-xl bg-[#0c1815] hover:bg-[#18362e] text-white text-xs font-semibold transition-all shadow-xs cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-[#0c1815] hover:bg-[#18362e] text-white text-xs font-semibold transition-all shadow-xs cursor-pointer"
             >
               View Key Insights ➔
             </button>
@@ -262,10 +329,40 @@ export default function DashboardView({ dashboard, onNavigateToInsights }: Dashb
         </div>
       </div>
 
-      {/* Presentation Module 1: 4 KPI Summary Cards */}
-      <KpiCardsGrid kpis={DEFAULT_KPIS} />
+      {/* Why Engine Feature Callout Banner */}
+      {onNavigateToWhy && (
+        <div className="p-5 rounded-3xl bg-linear-to-r from-[#122822] via-[#0d201b] to-slate-900 text-white border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
+              <GitFork className="w-5 h-5" />
+            </div>
+            <div className="space-y-0.5">
+              <h4 className="font-bold text-sm text-white flex items-center gap-2">
+                <span>Autonomous Root-Cause Analysis Ready</span>
+                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded-full">
+                  Why? Engine Active
+                </span>
+              </h4>
+              <p className="text-xs text-slate-300">
+                Do not just see what changed. Recursively investigate why it changed, audit seasonality, and simulate counterfactuals.
+              </p>
+            </div>
+          </div>
 
-      {/* Presentation Module 2: Visualizations Grid Adhering to 5 Decision Rules */}
+          <button
+            onClick={() => onNavigateToWhy()}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
+          >
+            <span>Explore Root Causes</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Presentation Module 1: Dynamic KPI Summary Cards */}
+      <KpiCardsGrid kpis={kpis} />
+
+      {/* Presentation Module 2: Visualizations Grid Adhering to Decision Rules */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
@@ -273,75 +370,32 @@ export default function DashboardView({ dashboard, onNavigateToInsights }: Dashb
             Rule-Generated Visualizations
           </h3>
           <span className="text-xs text-slate-500">
-            5 Auto-selected visuals based on schema classification
+            {displayCharts.length} Auto-selected visual{displayCharts.length === 1 ? '' : 's'} based on schema classification
           </span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Rule 1: Date + Numeric -> Line Chart (Span 8) */}
-          <div className="lg:col-span-8">
-            <ChartCard
-              chart={lineChart}
-              subtitle="Rule 1: Date + Numeric → Line Chart"
-              isWhyOpen={activeWhyChart === lineChart.id}
-              onToggleWhy={() =>
-                setActiveWhyChart(activeWhyChart === lineChart.id ? null : lineChart.id)
-              }
-              height={280}
-            />
-          </div>
+          {displayCharts.map((chart, idx) => {
+            const colSpan = getChartColSpan(chart, idx, displayCharts.length, displayCharts);
+            const subtitle = chart.decision_rule
+              ? `Rule: ${chart.decision_rule}`
+              : (chart.detected_inputs ? `Classification: ${chart.detected_inputs}` : 'Autonomous schema-driven visual');
+            const isHeatmap = chart.chart_type === 'heatmap' || (chart as any).type === 'heatmap';
 
-          {/* Rule 2: Category + Numeric -> Bar Chart (Span 4) */}
-          <div className="lg:col-span-4">
-            <ChartCard
-              chart={barChart}
-              subtitle="Rule 2: Category + Numeric → Bar Chart"
-              isWhyOpen={activeWhyChart === barChart.id}
-              onToggleWhy={() =>
-                setActiveWhyChart(activeWhyChart === barChart.id ? null : barChart.id)
-              }
-              height={280}
-            />
-          </div>
-
-          {/* Rule 3: Numeric + Numeric -> Scatter Plot (Span 6) */}
-          <div className="lg:col-span-6">
-            <ChartCard
-              chart={scatterChart}
-              subtitle="Rule 3: Numeric + Numeric → Scatter Plot"
-              isWhyOpen={activeWhyChart === scatterChart.id}
-              onToggleWhy={() =>
-                setActiveWhyChart(activeWhyChart === scatterChart.id ? null : scatterChart.id)
-              }
-              height={260}
-            />
-          </div>
-
-          {/* Rule 4: Single Numeric Variable -> Histogram (Span 6) */}
-          <div className="lg:col-span-6">
-            <ChartCard
-              chart={histChart}
-              subtitle="Rule 4: Single Numeric Variable → Histogram"
-              isWhyOpen={activeWhyChart === histChart.id}
-              onToggleWhy={() =>
-                setActiveWhyChart(activeWhyChart === histChart.id ? null : histChart.id)
-              }
-              height={260}
-            />
-          </div>
-
-          {/* Rule 5: Multiple Numeric Variables -> Heatmap Matrix (Span 12) */}
-          <div className="lg:col-span-12">
-            <ChartCard
-              chart={heatmapChart}
-              subtitle="Rule 5: Multiple Numeric Variables → Heatmap Matrix"
-              isWhyOpen={activeWhyChart === heatmapChart.id}
-              onToggleWhy={() =>
-                setActiveWhyChart(activeWhyChart === heatmapChart.id ? null : heatmapChart.id)
-              }
-              height={300}
-            />
-          </div>
+            return (
+              <div key={chart.id || `chart_${idx}`} className={colSpan}>
+                <ChartCard
+                  chart={chart}
+                  subtitle={subtitle}
+                  isWhyOpen={activeWhyChart === chart.id}
+                  onToggleWhy={() =>
+                    setActiveWhyChart(activeWhyChart === chart.id ? null : chart.id)
+                  }
+                  height={isHeatmap ? 300 : 280}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
 

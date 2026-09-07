@@ -1,5 +1,6 @@
 """
-Data Plugin: Ingests datasets from CSV/Excel and connects Agent 1 and Agent 2 to profiling tools.
+Data Plugin: Ingests documents across any format (PDF, Excel, Word, CSV, Images, JSON)
+and connects Agent 1 (Schema Profiler) and Agent 2 (Quality Inspector) to UDR ingestion pipelines.
 """
 
 import os
@@ -15,32 +16,39 @@ if CORE_ML_DIR not in sys.path:
 
 import column_inspector
 import quality_inspector
+from ingestion.universal_engine import ingest_any_file
 
 
 def load_dataframe(file_path: str) -> pd.DataFrame:
-    """Reads a CSV or Excel file into a pandas DataFrame."""
+    """Ingests any business document and extracts the primary analyzable pandas DataFrame."""
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"Dataset file not found at path: {file_path}")
 
-    ext = os.path.splitext(file_path)[1].lower()
-    if ext == ".csv":
-        try:
-            return pd.read_csv(file_path, encoding="utf-8")
-        except UnicodeDecodeError:
-            return pd.read_csv(file_path, encoding="latin1")
-    elif ext in [".xlsx", ".xls"]:
-        return pd.read_excel(file_path)
-    else:
-        # Try CSV as fallback
-        return pd.read_csv(file_path)
+    udr = ingest_any_file(file_path)
+    return udr.primary_dataframe
 
 
 def load_and_inspect_data(file_path: str) -> Tuple[pd.DataFrame, Dict[str, Any], Dict[str, Any]]:
     """
-    Ingests raw dataset and executes column profiling & data hygiene inspection.
+    Ingests raw document, extracts UDR, and executes column profiling & data hygiene inspection.
     Returns: (df, column_metadata_dict, quality_report_dict)
     """
-    df = load_dataframe(file_path)
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Dataset file not found at path: {file_path}")
+
+    udr = ingest_any_file(file_path)
+    df = udr.primary_dataframe
+    
     col_metadata = column_inspector.detect_column_types(df)
-    quality_report = quality_inspector.inspect_data_quality(df)
+    quality_report = quality_inspector.inspect_data_quality(
+        df,
+        extraction_metadata={
+            "extraction_confidence": udr.extraction_confidence_overall,
+            "has_handwritten_content": udr.has_handwritten_content,
+            "uncertain_fields": [u.to_dict() for u in udr.uncertain_fields],
+            "file_type": udr.file_type,
+            "total_pages": udr.total_pages,
+            "tables_extracted": len(udr.tables)
+        }
+    )
     return df, col_metadata, quality_report

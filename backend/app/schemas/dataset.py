@@ -18,6 +18,28 @@ class ColumnDetail(BaseModel):
     suggested_role: str
 
 
+class UncertainFieldModel(BaseModel):
+    field: str
+    value: str
+    confidence: float
+    page: int = 1
+    is_handwritten: bool = False
+    is_uncertain: bool = True
+    warning: Optional[str] = None
+
+
+class ExtractedTableSummary(BaseModel):
+    table_id: str
+    name: str
+    page_number: int = 1
+    page_range: Optional[str] = None
+    rows: int
+    cols: int
+    headers: List[str] = Field(default_factory=list)
+    extraction_method: str = "direct_parser"
+    average_confidence: float = 100.0
+
+
 class DatasetUploadResponse(BaseModel):
     dataset_id: str
     filename: str
@@ -25,8 +47,24 @@ class DatasetUploadResponse(BaseModel):
     row_count: int
     column_count: int
     file_format: str
+    file_type: str = "spreadsheet"
+    total_pages: int = 1
+    tables_extracted: int = 1
+    extraction_confidence: float = 100.0
+    has_handwritten_content: bool = False
+    uncertain_fields_count: int = 0
+    uncertain_fields: List[UncertainFieldModel] = Field(default_factory=list)
+    tables_summary: List[ExtractedTableSummary] = Field(default_factory=list)
+    extraction_log: List[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     message: str = "Dataset uploaded successfully"
+
+
+class ExtractionAuditResponse(BaseModel):
+    overall_confidence: float = 100.0
+    has_handwritten_content: bool = False
+    uncertain_fields_count: int = 0
+    uncertain_fields: List[UncertainFieldModel] = Field(default_factory=list)
 
 
 class HealthScoreResponse(BaseModel):
@@ -37,11 +75,14 @@ class HealthScoreResponse(BaseModel):
     total_missing_cells: int
     missing_cell_percentage: float
     issues_summary: List[str]
+    extraction_audit: Optional[ExtractionAuditResponse] = None
 
 
 class DatasetMetadataResponse(BaseModel):
     dataset_id: str
     filename: str
+    file_type: str = "spreadsheet"
+    total_pages: int = 1
     total_rows: int
     total_columns: int
     columns: List[ColumnDetail]
