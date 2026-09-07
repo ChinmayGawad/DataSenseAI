@@ -20,7 +20,7 @@ const SAMPLE_COLUMNS: ColumnProfileItem[] = [
     unique_count: 1420,
     null_count: 0,
     null_percentage: 0.0,
-    sample_values: ['2024-01-15', '2024-01-16', '2024-01-18'],
+    sample_values: ['15/01/2024', '16/01/2024', '18/01/2024'],
     suggested_role: 'time_index',
   },
   {
@@ -70,7 +70,7 @@ const SAMPLE_COLUMNS: ColumnProfileItem[] = [
     unique_count: 4890,
     null_count: 35,
     null_percentage: 0.7,
-    sample_values: [261.96, 731.94, 14.62, 957.57],
+    sample_values: ['₹261.96', '₹731.94', '₹14.62', '₹957.57'],
     suggested_role: 'measure',
   },
   {
@@ -80,7 +80,7 @@ const SAMPLE_COLUMNS: ColumnProfileItem[] = [
     unique_count: 3780,
     null_count: 24,
     null_percentage: 0.5,
-    sample_values: [41.91, 219.58, 6.87, -383.03],
+    sample_values: ['₹41.91', '₹219.58', '₹6.87', '-₹383.03'],
     suggested_role: 'measure',
   },
   {

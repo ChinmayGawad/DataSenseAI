@@ -63,6 +63,8 @@ export interface ChartConfig {
   plotly_layout: Record<string, any>;
   why_chosen: string;
   key_takeaway: string;
+  decision_rule?: string;
+  detected_inputs?: string;
 }
 
 export interface MetricCard {
@@ -181,6 +183,31 @@ export async function investigateFinding(jobId: string, findingId: string): Prom
 
   if (!res.ok) {
     throw new Error('Failed to drill down on finding');
+  }
+
+  return res.json();
+}
+
+export function getExportUrl(jobId: string, format: string = 'csv'): string {
+  return `${API_BASE_URL}/export/${jobId}?format=${format}`;
+}
+
+export async function queryDataset(jobId: string, question: string): Promise<{
+  status: string;
+  question: string;
+  answer: string;
+  key_takeaway: string;
+  fact_check: Record<string, any>;
+  supporting_table: any[];
+}> {
+  const res = await fetch(`${API_BASE_URL}/query`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ job_id: jobId, question }),
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to query dataset');
   }
 
   return res.json();

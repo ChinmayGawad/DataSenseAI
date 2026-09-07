@@ -41,3 +41,19 @@ class JobStatusResponse(BaseModel):
     logs: List[AgentLogItem] = Field(default_factory=list)
     plan: List[InvestigationPlanItem] = Field(default_factory=list)
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class QueryRequest(BaseModel):
+    job_id: Optional[str] = None
+    dataset_id: Optional[str] = None
+    question: str
+
+
+class QueryResponse(BaseModel):
+    status: str
+    question: str
+    answer: str
+    key_takeaway: str = ""
+    fact_check: Dict[str, Any] = Field(default_factory=dict)
+    query_details: Dict[str, Any] = Field(default_factory=dict)
+    supporting_table: List[Dict[str, Any]] = Field(default_factory=list)

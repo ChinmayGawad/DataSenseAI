@@ -27,7 +27,7 @@ export default function AiExecutiveSummaryCard({
           Across <strong>5,320 observations</strong>, top-line sales grew <strong>22.4%</strong> quarter-over-quarter, driven primarily by high-demand Technology products in the Western region.
         </p>
         <p>
-          However, excessive discounting (&gt;25%) in Furniture eroded <strong>-$14,200</strong> in cumulative net margin. Implementing automated discount ceilings is projected to recover approximately <strong>$28,000</strong> in annual operating income.
+          However, excessive discounting (&gt;25%) in Furniture eroded <strong>-₹14,204</strong> in cumulative net margin. Implementing automated discount ceilings is projected to recover approximately <strong>₹28,000</strong> in annual operating income.
         </p>
       </div>
 

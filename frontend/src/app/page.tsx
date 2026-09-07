@@ -13,6 +13,7 @@ import CleaningView from '../components/views/CleaningView';
 import DashboardView from '../components/views/DashboardView';
 import InsightsView from '../components/views/InsightsView';
 import ExportView from '../components/views/ExportView';
+import DatasetChatModal from '../components/presentation/chat/DatasetChatModal';
 
 // Custom State Hooks
 import { useUpload } from '../hooks/useUpload';
@@ -20,6 +21,7 @@ import { useInvestigation } from '../hooks/useInvestigation';
 
 export default function Home() {
   const [currentView, setCurrentView] = useState<NavView>('landing');
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Custom Hooks encapsulating API and state logic
   const {
@@ -82,6 +84,8 @@ export default function Home() {
           currentView={currentView}
           onReset={handleReset}
           showTimeFilter={currentView === 'dashboard'}
+          onOpenChat={() => setIsChatOpen(true)}
+          canChat={!!dashboardData || !!jobStatus?.job_id || !!uploadedDataset}
         />
 
         {/* Dynamic View Router */}
@@ -140,6 +144,14 @@ export default function Home() {
             />
           )}
         </main>
+
+        {/* Dataset Chat Modal */}
+        <DatasetChatModal
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          jobId={dashboardData?.job_id || jobStatus?.job_id || 'sample-job'}
+          datasetName={dashboardData?.dataset_name || uploadedDataset?.filename || 'Retail Sales Dataset'}
+        />
       </div>
     </div>
   );

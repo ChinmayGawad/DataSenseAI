@@ -14,6 +14,8 @@ class ChartConfig(BaseModel):
     plotly_layout: Dict[str, Any] = Field(default_factory=dict)
     why_chosen: str = Field(description="Transparency: Why did AI select this chart type?")
     key_takeaway: str = Field(description="Plain-language takeaway from the visual")
+    decision_rule: Optional[str] = Field(default=None, description="Smart Rule-Based Decision Rule")
+    detected_inputs: Optional[str] = Field(default=None, description="Detected Data Input Type")
 
 
 class MetricCard(BaseModel):
@@ -73,3 +75,18 @@ class DrilldownResponse(BaseModel):
     evidence_points: List[str]
     supporting_chart: Optional[ChartConfig] = None
     recommended_actions: List[str]
+
+
+class DatasetQueryRequest(BaseModel):
+    job_id: str
+    question: str
+
+
+class DatasetQueryResponse(BaseModel):
+    status: str = "success"
+    question: str
+    answer: str
+    key_takeaway: str = ""
+    fact_check: Dict[str, Any] = Field(default_factory=dict)
+    supporting_table: List[Dict[str, Any]] = Field(default_factory=list)
+

@@ -225,3 +225,82 @@ def build_cluster_chart(
         }
     except Exception as e:
         return {"type": "cluster_scatter", "error": str(e), "plotly_data": [], "plotly_layout": {}}
+
+
+# ==============================================================================
+# SMART RULE-BASED CHART SELECTION ENGINE (Feature Spotlight #2)
+# ==============================================================================
+
+SMART_CHART_RULES = [
+    {
+        "detected_inputs": "Numeric + Numeric",
+        "visual_type": "scatter",
+        "display_name": "Scatter Plot",
+        "rationale": "Scatter Plot auto-selected: optimal visual for bivariate numerical correlation, dispersion, and outlier clustering between two quantitative variables."
+    },
+    {
+        "detected_inputs": "Date + Numeric",
+        "visual_type": "line",
+        "display_name": "Line Chart",
+        "rationale": "Line Chart auto-selected: optimal visual for chronological progression, seasonal velocity, and temporal patterns across time series."
+    },
+    {
+        "detected_inputs": "Category + Numeric",
+        "visual_type": "bar",
+        "display_name": "Bar Chart",
+        "rationale": "Bar Chart auto-selected: optimal visual for ranking aggregate metrics across discrete categorical segments."
+    },
+    {
+        "detected_inputs": "Single Numeric Variable",
+        "visual_type": "histogram",
+        "display_name": "Histogram",
+        "rationale": "Histogram auto-selected: optimal visual for probability density, skewness, and frequency distribution of a single numerical variable."
+    },
+    {
+        "detected_inputs": "Multiple Numeric Variables",
+        "visual_type": "heatmap",
+        "display_name": "Heatmap Matrix",
+        "rationale": "Heatmap Matrix auto-selected: optimal visual for multi-variable covariance and collinearity across multiple numeric variables."
+    }
+]
+
+
+def build_histogram_chart(
+    df: pd.DataFrame,
+    numeric_col: str,
+    title: str = "Distribution Histogram",
+    nbins: int = 25
+) -> Dict[str, Any]:
+    """Generates a Plotly spec for univariate numeric frequency distribution (Rule: Single Numeric Variable -> Histogram)."""
+    try:
+        clean_series = df[numeric_col].dropna()
+        x_vals = [round(float(v), 2) for v in clean_series.tolist()[:1000]]
+
+        return {
+            "type": "histogram",
+            "plotly_data": [
+                {
+                    "x": x_vals,
+                    "type": "histogram",
+                    "nbinsx": nbins,
+                    "marker": {
+                        "color": "#10b981",
+                        "line": {"color": "#059669", "width": 1}
+                    },
+                    "name": numeric_col
+                }
+            ],
+            "plotly_layout": {
+                "title": {"text": title, "font": {"size": 16, "color": "#0f172a"}},
+                "xaxis": {"title": numeric_col, "color": "#64748b", "gridcolor": "#e2e8f0"},
+                "yaxis": {"title": "Frequency / Count", "color": "#64748b", "gridcolor": "#e2e8f0"},
+                "paper_bgcolor": "rgba(0,0,0,0)",
+                "plot_bgcolor": "rgba(0,0,0,0)",
+                "bargap": 0.05,
+                "font": {"color": "#334155"},
+                "margin": {"l": 50, "r": 20, "t": 40, "b": 60}
+            }
+        }
+    except Exception as e:
+        return {"type": "histogram", "error": str(e), "plotly_data": [], "plotly_layout": {}}
+

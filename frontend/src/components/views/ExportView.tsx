@@ -8,7 +8,7 @@ import {
   Code2,
   Sparkles,
 } from 'lucide-react';
-import { DashboardResponse } from '../../lib/api';
+import { DashboardResponse, getExportUrl } from '../../lib/api';
 import ExportOptionCard from '../presentation/export/ExportOptionCard';
 import ShareLinkBox from '../presentation/export/ShareLinkBox';
 import CompletionBanner from '../presentation/export/CompletionBanner';
@@ -39,6 +39,13 @@ export default function ExportView({
 
   const handleDownload = (format: string) => {
     setDownloadingFormat(format);
+    if (dashboard?.job_id && (format === 'csv' || format === 'json')) {
+      const exportUrl = getExportUrl(dashboard.job_id, format);
+      window.open(exportUrl, '_blank');
+      setTimeout(() => setDownloadingFormat(null), 800);
+      return;
+    }
+
     setTimeout(() => {
       const blob = new Blob([
         `DataSense AI Investigation Export (${format.toUpperCase()})\n` +

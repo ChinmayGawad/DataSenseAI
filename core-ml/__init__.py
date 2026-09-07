@@ -16,6 +16,8 @@ from .chart_engine import (
     build_scatter_chart,
     build_heatmap_chart,
     build_cluster_chart,
+    build_histogram_chart,
+    SMART_CHART_RULES,
 )
 
 __all__ = [
@@ -36,4 +38,6 @@ __all__ = [
     "build_scatter_chart",
     "build_heatmap_chart",
     "build_cluster_chart",
+    "build_histogram_chart",
+    "SMART_CHART_RULES",
 ]

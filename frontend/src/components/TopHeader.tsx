@@ -1,15 +1,17 @@
 'use client';
 
 import React from 'react';
-import { Bell, ChevronDown, Calendar, RotateCcw } from 'lucide-react';
+import { Bell, ChevronDown, Calendar, RotateCcw, Sparkles } from 'lucide-react';
 
 interface TopHeaderProps {
   currentView: string;
   onReset?: () => void;
   showTimeFilter?: boolean;
+  onOpenChat?: () => void;
+  canChat?: boolean;
 }
 
-export default function TopHeader({ currentView, onReset, showTimeFilter }: TopHeaderProps) {
+export default function TopHeader({ currentView, onReset, showTimeFilter, onOpenChat, canChat }: TopHeaderProps) {
   return (
     <header className="h-16 px-6 border-b border-slate-200/80 bg-white flex items-center justify-between shrink-0">
       {/* View indicator */}
@@ -25,6 +27,17 @@ export default function TopHeader({ currentView, onReset, showTimeFilter }: TopH
 
       {/* Right Controls */}
       <div className="flex items-center gap-3">
+        {/* Ask AI Button */}
+        {onOpenChat && (
+          <button
+            onClick={onOpenChat}
+            className="flex items-center gap-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 px-3 py-1.5 rounded-lg transition-all shadow-xs cursor-pointer group"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform" />
+            <span>Ask AI 💬</span>
+          </button>
+        )}
+
         {/* Optional Time Filter on Dashboard view */}
         {showTimeFilter && (
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-600 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors">

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Sparkles, ChevronDown } from 'lucide-react';
+import { Sparkles, ChevronDown, Workflow } from 'lucide-react';
 import { DashboardResponse, ChartConfig, DrilldownResponse } from '../../lib/api';
 import DrilldownModal from '../DrilldownModal';
 import KpiCardsGrid, { KpiItem } from '../presentation/dashboard/KpiCardsGrid';
@@ -16,7 +16,7 @@ const DEFAULT_KPIS: KpiItem[] = [
   {
     id: 'kpi_sales',
     label: 'Total Sales',
-    value: '$128,430',
+    value: '₹1,28,430',
     delta: '+12.4%',
     isPositive: true,
     subtext: 'vs last month',
@@ -24,7 +24,7 @@ const DEFAULT_KPIS: KpiItem[] = [
   {
     id: 'kpi_profit',
     label: 'Total Profit',
-    value: '$34,210',
+    value: '₹34,210',
     delta: '+8.2%',
     isPositive: true,
     subtext: 'vs last month',
@@ -47,12 +47,15 @@ const DEFAULT_KPIS: KpiItem[] = [
   },
 ];
 
+// 1. RULE: Date + Numeric -> Line Chart
 const DEFAULT_LINE_CHART: ChartConfig = {
   id: 'chart_sales_trend',
   title: 'Sales Trend Over Time',
   chart_type: 'line',
   x_axis: 'Month',
-  y_axis: 'Sales ($)',
+  y_axis: 'Sales (₹)',
+  detected_inputs: 'Date + Numeric',
+  decision_rule: 'Date + Numeric → Line Chart',
   plotly_data: [
     {
       x: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
@@ -72,45 +75,19 @@ const DEFAULT_LINE_CHART: ChartConfig = {
     plot_bgcolor: 'transparent',
     paper_bgcolor: 'transparent',
   },
-  why_chosen: 'Line chart with spline smoothing is the optimal visual encoding for continuous chronological trends and trajectory identification.',
+  why_chosen: 'Auto-selected Line Chart: Chronological inputs (Month + Sales) are best represented linearly to expose temporal velocity, seasonality, and time-series compounding growth.',
   key_takeaway: 'Sales demonstrate consistent 22% quarter-over-quarter compounding growth.',
 };
 
-const DEFAULT_DONUT_CHART: ChartConfig = {
-  id: 'chart_product_distribution',
-  title: 'Product Distribution',
-  chart_type: 'donut',
-  x_axis: 'Category',
-  plotly_data: [
-    {
-      labels: ['Technology', 'Furniture', 'Office Supplies'],
-      values: [48, 32, 20],
-      type: 'pie',
-      hole: 0.65,
-      marker: {
-        colors: ['#10b981', '#3b82f6', '#8b5cf6'],
-      },
-      textinfo: 'percent',
-      hoverinfo: 'label+percent',
-    },
-  ],
-  plotly_layout: {
-    margin: { t: 20, r: 20, b: 20, l: 20 },
-    showlegend: true,
-    legend: { orientation: 'h', y: -0.2, x: 0.1 },
-    plot_bgcolor: 'transparent',
-    paper_bgcolor: 'transparent',
-  },
-  why_chosen: 'Donut chart is ideal for displaying part-to-whole proportions when categories are few (<= 4), maximizing whitespace legibility.',
-  key_takeaway: 'Technology represents nearly half (48%) of all sales volume.',
-};
-
+// 2. RULE: Category + Numeric -> Bar Chart
 const DEFAULT_BAR_CHART: ChartConfig = {
   id: 'chart_sales_by_region',
-  title: 'Sales by Region',
+  title: 'Sales by Region Breakdown',
   chart_type: 'bar',
   x_axis: 'Region',
-  y_axis: 'Sales ($)',
+  y_axis: 'Sales (₹)',
+  detected_inputs: 'Category + Numeric',
+  decision_rule: 'Category + Numeric → Bar Chart',
   plotly_data: [
     {
       x: ['West', 'East', 'Central', 'South'],
@@ -129,8 +106,103 @@ const DEFAULT_BAR_CHART: ChartConfig = {
     plot_bgcolor: 'transparent',
     paper_bgcolor: 'transparent',
   },
-  why_chosen: 'Vertical bar chart provides the highest cognitive accuracy for discrete category comparisons along a quantitative axis.',
-  key_takeaway: 'The West region is the primary revenue driver, exceeding South by 141%.',
+  why_chosen: 'Auto-selected Bar Chart: Categorical grouping (Region) against quantitative revenue provides the clearest ranking and Pareto distribution comparison.',
+  key_takeaway: 'The West region is the primary revenue driver (₹45,200), exceeding South by 141%.',
+};
+
+// 3. RULE: Numeric + Numeric -> Scatter Plot
+const DEFAULT_SCATTER_CHART: ChartConfig = {
+  id: 'chart_sales_vs_profit',
+  title: 'Sales vs. Profit Correlation',
+  chart_type: 'scatter',
+  x_axis: 'Sales (₹)',
+  y_axis: 'Profit (₹)',
+  detected_inputs: 'Numeric + Numeric',
+  decision_rule: 'Numeric + Numeric → Scatter Plot',
+  plotly_data: [
+    {
+      x: [250, 480, 750, 1100, 1450, 1800, 2200, 2600, 3100, 3700, 4200, 4900, 5400, 6100],
+      y: [45, 95, 160, 240, 310, 410, 490, 580, 710, 820, 930, 1080, 1190, 1340],
+      mode: 'markers',
+      type: 'scatter',
+      marker: { size: 8, color: '#059669', opacity: 0.8 },
+      name: 'Transactions',
+    },
+  ],
+  plotly_layout: {
+    margin: { t: 20, r: 20, b: 40, l: 50 },
+    xaxis: { gridcolor: '#f1f5f9', title: 'Sales (₹)' },
+    yaxis: { gridcolor: '#f1f5f9', title: 'Profit (₹)' },
+    plot_bgcolor: 'transparent',
+    paper_bgcolor: 'transparent',
+  },
+  why_chosen: 'Auto-selected Scatter Plot: Two continuous numeric variables (Sales and Profit) mapped on Cartesian axes to expose linear correlation (r=0.91) and margin dispersion.',
+  key_takeaway: 'Profit exhibits strong positive elasticity relative to sales volume (r=0.91).',
+};
+
+// 4. RULE: Single Numeric Variable -> Histogram
+const DEFAULT_HISTOGRAM_CHART: ChartConfig = {
+  id: 'chart_sales_dist',
+  title: 'Sales Frequency Distribution',
+  chart_type: 'histogram',
+  x_axis: 'Sales Amount (₹)',
+  y_axis: 'Frequency',
+  detected_inputs: 'Single Numeric Variable',
+  decision_rule: 'Single Numeric Variable → Histogram',
+  plotly_data: [
+    {
+      x: [120, 240, 290, 310, 450, 480, 520, 590, 640, 710, 780, 890, 920, 1100, 1250, 1400, 1600, 1800, 2100, 2400, 2900, 3400, 4100, 4800, 5200],
+      type: 'histogram',
+      nbinsx: 12,
+      marker: { color: '#10b981', line: { color: '#047857', width: 1 } },
+    },
+  ],
+  plotly_layout: {
+    margin: { t: 20, r: 20, b: 40, l: 50 },
+    xaxis: { gridcolor: '#f1f5f9', title: 'Transaction Value (₹)' },
+    yaxis: { gridcolor: '#f1f5f9', title: 'Order Count' },
+    plot_bgcolor: 'transparent',
+    paper_bgcolor: 'transparent',
+    bargap: 0.05,
+  },
+  why_chosen: 'Auto-selected Histogram: Single numeric variable is partitioned into discrete bins to model density distribution, skewness, and transaction volume clusters.',
+  key_takeaway: '72% of transactions cluster below ₹1,500 with a long-tail distribution reaching ₹5,200.',
+};
+
+// 5. RULE: Multiple Numeric Variables -> Heatmap Matrix
+const DEFAULT_HEATMAP_CHART: ChartConfig = {
+  id: 'chart_multivariate_matrix',
+  title: 'Multivariate Feature Correlation Matrix',
+  chart_type: 'heatmap',
+  x_axis: 'Attributes',
+  y_axis: 'Attributes',
+  detected_inputs: 'Multiple Numeric Variables',
+  decision_rule: 'Multiple Numeric Variables → Heatmap Matrix',
+  plotly_data: [
+    {
+      z: [
+        [1.0, 0.89, 0.42, -0.15],
+        [0.89, 1.0, 0.38, -0.22],
+        [0.42, 0.38, 1.0, 0.05],
+        [-0.15, -0.22, 0.05, 1.0],
+      ],
+      x: ['Sales (₹)', 'Profit (₹)', 'Quantity', 'Discount'],
+      y: ['Sales (₹)', 'Profit (₹)', 'Quantity', 'Discount'],
+      type: 'heatmap',
+      colorscale: 'Viridis',
+      zmin: -1.0,
+      zmax: 1.0,
+      colorbar: { thickness: 10, len: 0.8 },
+    },
+  ],
+  plotly_layout: {
+    margin: { t: 20, r: 20, b: 60, l: 80 },
+    xaxis: { tickangle: -25 },
+    plot_bgcolor: 'transparent',
+    paper_bgcolor: 'transparent',
+  },
+  why_chosen: 'Auto-selected Heatmap Matrix: Multiple numeric variables (Sales, Profit, Quantity, Discount) are compressed into a symmetric correlation matrix to expose collinearities.',
+  key_takeaway: 'Sales and Profit exhibit high co-movement (+0.89), while higher Discounts negatively correlate with margins (-0.22).',
 };
 
 export default function DashboardView({ dashboard, onNavigateToInsights }: DashboardViewProps) {
@@ -139,9 +211,12 @@ export default function DashboardView({ dashboard, onNavigateToInsights }: Dashb
   const [drilldownData, setDrilldownData] = useState<DrilldownResponse | null>(null);
 
   const charts = dashboard?.charts && dashboard.charts.length > 0 ? dashboard.charts : [];
-  const lineChart = charts.find((c) => c.chart_type === 'line' || c.chart_type === 'scatter') || DEFAULT_LINE_CHART;
-  const donutChart = charts.find((c) => c.chart_type === 'donut' || c.chart_type === 'pie') || DEFAULT_DONUT_CHART;
-  const barChart = charts.find((c) => c.chart_type === 'bar' || c.chart_type === 'histogram') || DEFAULT_BAR_CHART;
+
+  const lineChart = charts.find((c) => c.chart_type === 'line' || c.detected_inputs?.includes('Date')) || DEFAULT_LINE_CHART;
+  const barChart = charts.find((c) => c.chart_type === 'bar' || c.detected_inputs?.includes('Category')) || DEFAULT_BAR_CHART;
+  const scatterChart = charts.find((c) => c.chart_type === 'scatter' || c.detected_inputs === 'Numeric + Numeric') || DEFAULT_SCATTER_CHART;
+  const histChart = charts.find((c) => c.chart_type === 'histogram' || c.detected_inputs?.includes('Single Numeric')) || DEFAULT_HISTOGRAM_CHART;
+  const heatmapChart = charts.find((c) => c.chart_type === 'heatmap' || c.detected_inputs?.includes('Multiple Numeric')) || DEFAULT_HEATMAP_CHART;
 
   return (
     <div className="w-full max-w-7xl mx-auto py-6 px-4 sm:px-6 space-y-8 animate-in fade-in duration-300">
@@ -190,45 +265,83 @@ export default function DashboardView({ dashboard, onNavigateToInsights }: Dashb
       {/* Presentation Module 1: 4 KPI Summary Cards */}
       <KpiCardsGrid kpis={DEFAULT_KPIS} />
 
-      {/* Presentation Module 2: Visualizations Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Chart 1: Sales Trend (Span 8) */}
-        <div className="lg:col-span-8">
-          <ChartCard
-            chart={lineChart}
-            subtitle="Continuous temporal progression"
-            isWhyOpen={activeWhyChart === lineChart.id}
-            onToggleWhy={() =>
-              setActiveWhyChart(activeWhyChart === lineChart.id ? null : lineChart.id)
-            }
-            height={280}
-          />
+      {/* Presentation Module 2: Visualizations Grid Adhering to 5 Decision Rules */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+            <Workflow className="w-4 h-4 text-emerald-600" />
+            Rule-Generated Visualizations
+          </h3>
+          <span className="text-xs text-slate-500">
+            5 Auto-selected visuals based on schema classification
+          </span>
         </div>
 
-        {/* Chart 2: Product Distribution Donut (Span 4) */}
-        <div className="lg:col-span-4">
-          <ChartCard
-            chart={donutChart}
-            subtitle="Part-to-whole categorical share"
-            isWhyOpen={activeWhyChart === donutChart.id}
-            onToggleWhy={() =>
-              setActiveWhyChart(activeWhyChart === donutChart.id ? null : donutChart.id)
-            }
-            height={280}
-          />
-        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Rule 1: Date + Numeric -> Line Chart (Span 8) */}
+          <div className="lg:col-span-8">
+            <ChartCard
+              chart={lineChart}
+              subtitle="Rule 1: Date + Numeric → Line Chart"
+              isWhyOpen={activeWhyChart === lineChart.id}
+              onToggleWhy={() =>
+                setActiveWhyChart(activeWhyChart === lineChart.id ? null : lineChart.id)
+              }
+              height={280}
+            />
+          </div>
 
-        {/* Chart 3: Sales by Region Bar Chart (Span 12) */}
-        <div className="lg:col-span-12">
-          <ChartCard
-            chart={barChart}
-            subtitle="Discrete comparative benchmark"
-            isWhyOpen={activeWhyChart === barChart.id}
-            onToggleWhy={() =>
-              setActiveWhyChart(activeWhyChart === barChart.id ? null : barChart.id)
-            }
-            height={260}
-          />
+          {/* Rule 2: Category + Numeric -> Bar Chart (Span 4) */}
+          <div className="lg:col-span-4">
+            <ChartCard
+              chart={barChart}
+              subtitle="Rule 2: Category + Numeric → Bar Chart"
+              isWhyOpen={activeWhyChart === barChart.id}
+              onToggleWhy={() =>
+                setActiveWhyChart(activeWhyChart === barChart.id ? null : barChart.id)
+              }
+              height={280}
+            />
+          </div>
+
+          {/* Rule 3: Numeric + Numeric -> Scatter Plot (Span 6) */}
+          <div className="lg:col-span-6">
+            <ChartCard
+              chart={scatterChart}
+              subtitle="Rule 3: Numeric + Numeric → Scatter Plot"
+              isWhyOpen={activeWhyChart === scatterChart.id}
+              onToggleWhy={() =>
+                setActiveWhyChart(activeWhyChart === scatterChart.id ? null : scatterChart.id)
+              }
+              height={260}
+            />
+          </div>
+
+          {/* Rule 4: Single Numeric Variable -> Histogram (Span 6) */}
+          <div className="lg:col-span-6">
+            <ChartCard
+              chart={histChart}
+              subtitle="Rule 4: Single Numeric Variable → Histogram"
+              isWhyOpen={activeWhyChart === histChart.id}
+              onToggleWhy={() =>
+                setActiveWhyChart(activeWhyChart === histChart.id ? null : histChart.id)
+              }
+              height={260}
+            />
+          </div>
+
+          {/* Rule 5: Multiple Numeric Variables -> Heatmap Matrix (Span 12) */}
+          <div className="lg:col-span-12">
+            <ChartCard
+              chart={heatmapChart}
+              subtitle="Rule 5: Multiple Numeric Variables → Heatmap Matrix"
+              isWhyOpen={activeWhyChart === heatmapChart.id}
+              onToggleWhy={() =>
+                setActiveWhyChart(activeWhyChart === heatmapChart.id ? null : heatmapChart.id)
+              }
+              height={300}
+            />
+          </div>
         </div>
       </div>
 

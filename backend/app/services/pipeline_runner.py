@@ -109,6 +109,8 @@ def execute_investigation_pipeline(job_id: str, file_path: Path, filename: str) 
             "plotly_layout": c.get("plotly_layout", {}),
             "why_chosen": c.get("why_chosen", "Selected by Visualization Architect based on data distribution."),
             "key_takeaway": c.get("key_takeaway", f"Reveals primary variance patterns across {c.get('x_axis', 'features')}."),
+            "decision_rule": c.get("decision_rule"),
+            "detected_inputs": c.get("detected_inputs"),
         })
 
     # 3. Format Insights according to Dashboard API Contract
@@ -185,6 +187,24 @@ def execute_investigation_pipeline(job_id: str, file_path: Path, filename: str) 
         health_score=health_score
     )
 
+    # Add frontend presentation counters to cleaning summary
+    imputations = cleaning.get("imputation_actions", [])
+    total_imputed_cells = sum(imp.get("missing_count", 1) for imp in imputations)
+    formattings = cleaning.get("formatting_actions", [])
+
+    cleaning_view_summary = {
+        **cleaning,
+        "missing_values_imputed": total_imputed_cells,
+        "duplicates_removed": cleaning.get("duplicates_removed", 0),
+        "format_issues_fixed": len(formattings),
+        "inconsistent_entries_standardized": len(formattings) + len(cleaning.get("columns_dropped", [])),
+    }
+
+    quality_view_report = {
+        **quality,
+        "initial_health_score": health_score,
+    }
+
     dashboard_data = {
         "job_id": job_id,
         "dataset_id": job_id,
@@ -194,9 +214,9 @@ def execute_investigation_pipeline(job_id: str, file_path: Path, filename: str) 
         "summary_cards": summary_cards,
         "charts": formatted_charts,
         "insights": formatted_insights,
-        "cleaning_summary": cleaning,
+        "cleaning_summary": cleaning_view_summary,
         "columns": columns,
-        "quality_report": quality,
+        "quality_report": quality_view_report,
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
     job_store.save_dashboard(job_id, dashboard_data)

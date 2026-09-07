@@ -17,14 +17,14 @@ const DEFAULT_INSIGHTS: FactCheckedInsight[] = [
   {
     id: 'ins_1',
     title: 'Technology Dominates Revenue Growth',
-    statement: 'Technology sales accounted for 48.2% ($61,900) of total revenue, growing at 22.4% quarter-over-quarter with consistent positive margins.',
+    statement: 'Technology sales accounted for 48.2% (₹61,903) of total revenue, growing at 22.4% quarter-over-quarter with consistent positive margins.',
     category: 'growth',
     importance: 'high',
     is_verified: true,
     fact_check_verdict: 'verified',
     math_proof: {
-      technology_sales: '$61,903.20',
-      total_sales: '$128,430.00',
+      technology_sales: '₹61,903.20',
+      total_sales: '₹1,28,430.00',
       percentage_share: '48.20%',
       qoq_growth_rate: '+22.4%',
       margin_avg: '28.1%',
@@ -35,7 +35,7 @@ const DEFAULT_INSIGHTS: FactCheckedInsight[] = [
   {
     id: 'ins_2',
     title: 'High Discounts Trigger Negative Margins',
-    statement: 'Orders with discounts above 25% showed a strong negative correlation (r = -0.68) with profitability, resulting in -$14,200 in net margin erosion.',
+    statement: 'Orders with discounts above 25% showed a strong negative correlation (r = -0.68) with profitability, resulting in -₹14,204 in net margin erosion.',
     category: 'discount',
     importance: 'high',
     is_verified: true,
@@ -43,7 +43,7 @@ const DEFAULT_INSIGHTS: FactCheckedInsight[] = [
     math_proof: {
       pearson_correlation: -0.681,
       p_value: '0.000041',
-      eroded_margin: '-$14,204.10',
+      eroded_margin: '-₹14,204.10',
       affected_transactions: 412,
     },
     verification_notes: 'Calculated using scipy.stats.pearsonr between Discount and Profit columns.',
@@ -52,14 +52,14 @@ const DEFAULT_INSIGHTS: FactCheckedInsight[] = [
   {
     id: 'ins_3',
     title: 'Corporate Segment Demonstrates Highest LTV',
-    statement: 'Corporate buyers yield an average order value 34% higher ($410 vs $306) than Consumer accounts with 2.3x higher repeat transaction frequency.',
+    statement: 'Corporate buyers yield an average order value 34% higher (₹410 vs ₹306) than Consumer accounts with 2.3x higher repeat transaction frequency.',
     category: 'customer',
     importance: 'medium',
     is_verified: true,
     fact_check_verdict: 'verified',
     math_proof: {
-      corporate_aov: '$410.25',
-      consumer_aov: '$306.10',
+      corporate_aov: '₹410.25',
+      consumer_aov: '₹306.10',
       aov_delta: '+34.02%',
       repeat_rate_multiplier: '2.31x',
     },
