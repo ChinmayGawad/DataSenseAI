@@ -77,7 +77,7 @@ export default function ExportView({
           Export Your Results
         </h2>
         <p className="text-sm text-slate-500 max-w-lg mx-auto">
-          Download cleaned datasets, share read-only dashboards, or generate executive PDF summaries.
+          Download your cleaned dataset, dashboard and insights.
         </p>
       </div>
 

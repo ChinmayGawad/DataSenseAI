@@ -28,9 +28,11 @@ class Settings(BaseModel):
     LOCAL_UPLOAD_DIR: Path = UPLOAD_DIR
     MAX_UPLOAD_SIZE_MB: int = 50
     ALLOWED_EXTENSIONS: set[str] = {
-        ".csv", ".tsv", ".xlsx", ".xls", ".json", ".jsonl",
-        ".txt", ".pdf", ".docx", ".pptx", ".png", ".jpg",
-        ".jpeg", ".webp", ".tiff"
+        ".csv", ".tsv", ".xlsx", ".xls", ".xlsm", ".parquet",
+        ".json", ".jsonl", ".txt", ".md", ".log",
+        ".pdf", ".docx", ".pptx",
+        ".png", ".jpg", ".jpeg", ".webp", ".tiff", ".bmp",
+        ".zip", ".tar", ".gz"
     }
     
     # Supabase (Optional fallback to local storage)

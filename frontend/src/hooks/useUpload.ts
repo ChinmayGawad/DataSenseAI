@@ -5,7 +5,7 @@ export function useUpload() {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedDataset, setUploadedDataset] = useState<DatasetUploadResponse | null>(null);
-  const [localFile, setLocalFile] = useState<File | null>(null);
+  const [localFiles, setLocalFiles] = useState<File[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -19,22 +19,29 @@ export function useUpload() {
     }
   }, []);
 
-  const processFile = useCallback(async (file: File) => {
+  const processFiles = useCallback(async (files: File | File[]) => {
     setErrorMsg(null);
-    setLocalFile(file);
+    const filesArray = Array.isArray(files) ? files : [files];
+    if (filesArray.length === 0) return null;
+
+    setLocalFiles(filesArray);
     setIsUploading(true);
     try {
-      const res = await uploadDataset(file);
+      const res = await uploadDataset(filesArray);
       setUploadedDataset(res);
       return res;
     } catch (err: any) {
-      const msg = err.message || 'Failed to upload spreadsheet';
+      const msg = err.message || 'Failed to upload document(s)';
       setErrorMsg(msg);
       throw err;
     } finally {
       setIsUploading(false);
     }
   }, []);
+
+  const processFile = useCallback((file: File) => {
+    return processFiles([file]);
+  }, [processFiles]);
 
   const handleDrop = useCallback(
     async (e: React.DragEvent) => {
@@ -43,21 +50,23 @@ export function useUpload() {
       setIsDragging(false);
       setErrorMsg(null);
 
-      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-        await processFile(e.dataTransfer.files[0]);
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const fileList = Array.from(e.dataTransfer.files);
+        await processFiles(fileList);
       }
     },
-    [processFile]
+    [processFiles]
   );
 
   const handleFileInput = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       setErrorMsg(null);
-      if (e.target.files && e.target.files[0]) {
-        await processFile(e.target.files[0]);
+      if (e.target.files && e.target.files.length > 0) {
+        const fileList = Array.from(e.target.files);
+        await processFiles(fileList);
       }
     },
-    [processFile]
+    [processFiles]
   );
 
   const selectSample = useCallback(
@@ -80,18 +89,18 @@ export function useUpload() {
         }
 
         const file = new File([csvContent], fileName, { type: 'text/csv' });
-        return await processFile(file);
+        return await processFiles([file]);
       } catch (err: any) {
         console.error('Failed to load sample benchmark:', err);
         throw err;
       }
     },
-    [processFile]
+    [processFiles]
   );
 
   const resetUpload = useCallback(() => {
     setUploadedDataset(null);
-    setLocalFile(null);
+    setLocalFiles([]);
     setErrorMsg(null);
     setIsDragging(false);
     setIsUploading(false);
@@ -101,13 +110,15 @@ export function useUpload() {
     isDragging,
     isUploading,
     uploadedDataset,
-    localFile,
+    localFile: localFiles[0] || null,
+    localFiles,
     errorMsg,
     fileInputRef,
     handleDrag,
     handleDrop,
     handleFileInput,
     processFile,
+    processFiles,
     selectSample,
     resetUpload,
   };

@@ -17,7 +17,7 @@ CORE_ML_DIR = Path(__file__).resolve().parent.parent.parent.parent / "core-ml"
 if str(CORE_ML_DIR) not in sys.path:
     sys.path.append(str(CORE_ML_DIR))
 
-from ingestion.universal_engine import ingest_any_file
+from ingestion.universal_engine import ingest_any_file, ingest_multiple_files
 from ingestion.schema import UnifiedDocumentRepresentation
 
 
@@ -55,6 +55,12 @@ class StorageService:
         Runs the Universal Ingestion Engine to extract normalized structured data and metadata.
         """
         return ingest_any_file(file_path, original_filename=filename)
+
+    def ingest_multiple_documents(self, file_paths: list[Path], filenames: Optional[list[str]] = None) -> UnifiedDocumentRepresentation:
+        """
+        Runs the Universal Ingestion Engine across multiple documents, stitching tables and merging metadata.
+        """
+        return ingest_multiple_files(file_paths, original_filenames=filenames)
 
     def load_dataframe(self, file_path: Path) -> pd.DataFrame:
         """

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, GitCompare, TrendingUp, TrendingDown, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
 import { DatasetComparisonResponse, compareDatasets } from '../../../lib/api';
 
@@ -19,6 +19,16 @@ export default function DatasetComparisonModal({
   const [comparisonResult, setComparisonResult] = useState<DatasetComparisonResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 

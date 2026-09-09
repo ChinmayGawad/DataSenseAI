@@ -5,11 +5,12 @@ import { Sparkles, AlertCircle, FileCheck, Layers } from 'lucide-react';
 import { DatasetUploadResponse } from '../../lib/api';
 import DropzoneCard from '../presentation/upload/DropzoneCard';
 import FilePreviewBadge from '../presentation/upload/FilePreviewBadge';
+import MultiFileQueueList from '../presentation/upload/MultiFileQueueList';
 import DocumentExtractionSummary from '../presentation/upload/DocumentExtractionSummary';
 import SampleBenchmarksRow from '../presentation/upload/SampleBenchmarksRow';
 
 interface UploadViewProps {
-  onFileUpload: (file: File) => Promise<any>;
+  onFileUpload: (fileOrFiles: File | File[]) => Promise<any>;
   onStartAnalysis: () => void;
   uploadedDataset: DatasetUploadResponse | null;
   isUploading: boolean;
@@ -24,7 +25,7 @@ export default function UploadView({
   onSelectSample,
 }: UploadViewProps) {
   const [isDragging, setIsDragging] = React.useState(false);
-  const [localFile, setLocalFile] = React.useState<File | null>(null);
+  const [localFiles, setLocalFiles] = React.useState<File[]>([]);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -44,26 +45,26 @@ export default function UploadView({
     setIsDragging(false);
     setErrorMsg(null);
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      setLocalFile(file);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const files = Array.from(e.dataTransfer.files);
+      setLocalFiles(files);
       try {
-        await onFileUpload(file);
+        await onFileUpload(files.length === 1 ? files[0] : files);
       } catch (err: any) {
-        setErrorMsg(err.message || 'Failed to process file');
+        setErrorMsg(err.message || 'Failed to process files');
       }
     }
   };
 
   const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setErrorMsg(null);
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setLocalFile(file);
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files);
+      setLocalFiles(files);
       try {
-        await onFileUpload(file);
+        await onFileUpload(files.length === 1 ? files[0] : files);
       } catch (err: any) {
-        setErrorMsg(err.message || 'Failed to process file');
+        setErrorMsg(err.message || 'Failed to process files');
       }
     }
   };
@@ -74,13 +75,13 @@ export default function UploadView({
       <div className="text-center space-y-2">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-xs font-semibold">
           <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-          Universal Ingestion & Extraction Engine
+          <span>Universal 20+ Format Ingestion Pipeline</span>
         </div>
         <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-          Upload Any Business Document
+          Upload Single or Multiple Documents
         </h2>
         <p className="text-sm text-slate-500 max-w-xl mx-auto">
-          Convert PDFs, Scanned Reports, Handwritten Forms, Word Docs, Spreadsheets, and Images into normalized, analyzable data with confidence scoring.
+          Support for Spreadsheets, PDFs (Digital & Scanned), Word, PPTX, Images, Handwritten Forms, JSON & ZIP bundles.
         </p>
       </div>
 
@@ -102,15 +103,27 @@ export default function UploadView({
         </div>
       )}
 
-      {/* Presentation Module 2: Document Extraction Summary (When uploaded) */}
-      {uploadedDataset && (
-        <DocumentExtractionSummary dataset={uploadedDataset} />
+      {/* Multi-File Ingested Queue */}
+      {uploadedDataset && (uploadedDataset.total_files_count || 1) > 1 && (
+        <MultiFileQueueList
+          files={uploadedDataset.files_summary}
+          localFiles={localFiles}
+          totalFilesCount={uploadedDataset.total_files_count}
+        />
       )}
+
+      {/* Presentation Module 2: Document Extraction Summary (When non-spreadsheet or uncertainty exists) */}
+      {uploadedDataset &&
+        ((uploadedDataset.uncertain_fields_count || 0) > 0 ||
+          uploadedDataset.file_type !== 'spreadsheet' ||
+          (uploadedDataset.total_files_count || 1) > 1) && (
+          <DocumentExtractionSummary dataset={uploadedDataset} />
+        )}
 
       {/* Presentation Module 3: File Preview Badge & Analysis Trigger */}
       <FilePreviewBadge
         dataset={uploadedDataset}
-        file={localFile}
+        file={localFiles[0] || null}
         onStartAnalysis={onStartAnalysis}
         isUploading={isUploading}
       />

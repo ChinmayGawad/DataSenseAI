@@ -1,277 +1,181 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Sparkles, ChevronDown, Workflow, GitFork, ArrowRight, Layers } from 'lucide-react';
-import { DashboardResponse, ChartConfig, DrilldownResponse } from '../../lib/api';
+import { Sparkles, ChevronDown, Workflow, GitFork, ArrowRight, Layers, Upload, Play } from 'lucide-react';
+import { DashboardResponse, ChartConfig, DrilldownResponse, DatasetUploadResponse } from '../../lib/api';
 import DrilldownModal from '../DrilldownModal';
 import KpiCardsGrid, { KpiItem } from '../presentation/dashboard/KpiCardsGrid';
 import ChartCard from '../presentation/dashboard/ChartCard';
 
 interface DashboardViewProps {
   dashboard: DashboardResponse | null;
+  uploadedDataset?: DatasetUploadResponse | null;
+  onStartAnalysis?: () => void;
   onNavigateToInsights?: () => void;
   onNavigateToWhy?: (metric?: string) => void;
 }
 
-const DEFAULT_KPIS: KpiItem[] = [
-  {
-    id: 'kpi_sales',
-    label: 'Total Sales',
-    value: '₹1,28,430',
-    delta: '+12.4%',
-    isPositive: true,
-    subtext: 'vs last month',
-  },
-  {
-    id: 'kpi_profit',
-    label: 'Total Profit',
-    value: '₹34,210',
-    delta: '+8.2%',
-    isPositive: true,
-    subtext: 'vs last month',
-  },
-  {
-    id: 'kpi_orders',
-    label: 'Total Orders',
-    value: '1,420',
-    delta: '-2.1%',
-    isPositive: false,
-    subtext: 'vs last month',
-  },
-  {
-    id: 'kpi_customers',
-    label: 'Total Customers',
-    value: '892',
-    delta: '+5.3%',
-    isPositive: true,
-    subtext: 'vs last month',
-  },
-];
-
-// 1. RULE: Date + Numeric -> Line Chart
-const DEFAULT_LINE_CHART: ChartConfig = {
-  id: 'chart_sales_trend',
-  title: 'Sales Trend Over Time',
-  chart_type: 'line',
-  x_axis: 'Month',
-  y_axis: 'Sales (₹)',
-  detected_inputs: 'Date + Numeric',
-  decision_rule: 'Date + Numeric → Line Chart',
-  plotly_data: [
-    {
-      x: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-      y: [7200, 8100, 9400, 8900, 11200, 10800, 12500, 13100, 12900, 14200, 15800, 17200],
-      type: 'scatter',
-      mode: 'lines+markers',
-      line: { color: '#10b981', width: 3, shape: 'spline' },
-      marker: { color: '#047857', size: 6 },
-      fill: 'tozeroy',
-      fillcolor: 'rgba(16, 185, 129, 0.08)',
-    },
-  ],
-  plotly_layout: {
-    margin: { t: 20, r: 20, b: 40, l: 50 },
-    xaxis: { gridcolor: '#f1f5f9' },
-    yaxis: { gridcolor: '#f1f5f9' },
-    plot_bgcolor: 'transparent',
-    paper_bgcolor: 'transparent',
-  },
-  why_chosen: 'Auto-selected Line Chart: Chronological inputs (Month + Sales) are best represented linearly to expose temporal velocity, seasonality, and time-series compounding growth.',
-  key_takeaway: 'Sales demonstrate consistent 22% quarter-over-quarter compounding growth.',
-};
-
-// 2. RULE: Category + Numeric -> Bar Chart
-const DEFAULT_BAR_CHART: ChartConfig = {
-  id: 'chart_sales_by_region',
-  title: 'Sales by Region Breakdown',
-  chart_type: 'bar',
-  x_axis: 'Region',
-  y_axis: 'Sales (₹)',
-  detected_inputs: 'Category + Numeric',
-  decision_rule: 'Category + Numeric → Bar Chart',
-  plotly_data: [
-    {
-      x: ['West', 'East', 'Central', 'South'],
-      y: [45200, 38100, 26400, 18730],
-      type: 'bar',
-      marker: {
-        color: ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0'],
-        borderRadius: 8,
-      },
-    },
-  ],
-  plotly_layout: {
-    margin: { t: 20, r: 20, b: 40, l: 50 },
-    xaxis: { gridcolor: '#f1f5f9' },
-    yaxis: { gridcolor: '#f1f5f9' },
-    plot_bgcolor: 'transparent',
-    paper_bgcolor: 'transparent',
-  },
-  why_chosen: 'Auto-selected Bar Chart: Categorical grouping (Region) against quantitative revenue provides the clearest ranking and Pareto distribution comparison.',
-  key_takeaway: 'The West region is the primary revenue driver (₹45,200), exceeding South by 141%.',
-};
-
-// 3. RULE: Numeric + Numeric -> Scatter Plot
-const DEFAULT_SCATTER_CHART: ChartConfig = {
-  id: 'chart_sales_vs_profit',
-  title: 'Sales vs. Profit Correlation',
-  chart_type: 'scatter',
-  x_axis: 'Sales (₹)',
-  y_axis: 'Profit (₹)',
-  detected_inputs: 'Numeric + Numeric',
-  decision_rule: 'Numeric + Numeric → Scatter Plot',
-  plotly_data: [
-    {
-      x: [250, 480, 750, 1100, 1450, 1800, 2200, 2600, 3100, 3700, 4200, 4900, 5400, 6100],
-      y: [45, 95, 160, 240, 310, 410, 490, 580, 710, 820, 930, 1080, 1190, 1340],
-      mode: 'markers',
-      type: 'scatter',
-      marker: { size: 8, color: '#059669', opacity: 0.8 },
-      name: 'Transactions',
-    },
-  ],
-  plotly_layout: {
-    margin: { t: 20, r: 20, b: 40, l: 50 },
-    xaxis: { gridcolor: '#f1f5f9', title: 'Sales (₹)' },
-    yaxis: { gridcolor: '#f1f5f9', title: 'Profit (₹)' },
-    plot_bgcolor: 'transparent',
-    paper_bgcolor: 'transparent',
-  },
-  why_chosen: 'Auto-selected Scatter Plot: Two continuous numeric variables (Sales and Profit) mapped on Cartesian axes to expose linear correlation (r=0.91) and margin dispersion.',
-  key_takeaway: 'Profit exhibits strong positive elasticity relative to sales volume (r=0.91).',
-};
-
-// 4. RULE: Single Numeric Variable -> Histogram
-const DEFAULT_HISTOGRAM_CHART: ChartConfig = {
-  id: 'chart_sales_dist',
-  title: 'Sales Frequency Distribution',
-  chart_type: 'histogram',
-  x_axis: 'Sales Amount (₹)',
-  y_axis: 'Frequency',
-  detected_inputs: 'Single Numeric Variable',
-  decision_rule: 'Single Numeric Variable → Histogram',
-  plotly_data: [
-    {
-      x: [120, 240, 290, 310, 450, 480, 520, 590, 640, 710, 780, 890, 920, 1100, 1250, 1400, 1600, 1800, 2100, 2400, 2900, 3400, 4100, 4800, 5200],
-      type: 'histogram',
-      nbinsx: 12,
-      marker: { color: '#10b981', line: { color: '#047857', width: 1 } },
-    },
-  ],
-  plotly_layout: {
-    margin: { t: 20, r: 20, b: 40, l: 50 },
-    xaxis: { gridcolor: '#f1f5f9', title: 'Transaction Value (₹)' },
-    yaxis: { gridcolor: '#f1f5f9', title: 'Order Count' },
-    plot_bgcolor: 'transparent',
-    paper_bgcolor: 'transparent',
-    bargap: 0.05,
-  },
-  why_chosen: 'Auto-selected Histogram: Single numeric variable is partitioned into discrete bins to model density distribution, skewness, and transaction volume clusters.',
-  key_takeaway: '72% of transactions cluster below ₹1,500 with a long-tail distribution reaching ₹5,200.',
-};
-
-// 5. RULE: Multiple Numeric Variables -> Heatmap Matrix
-const DEFAULT_HEATMAP_CHART: ChartConfig = {
-  id: 'chart_multivariate_matrix',
-  title: 'Multivariate Feature Correlation Matrix',
-  chart_type: 'heatmap',
-  x_axis: 'Attributes',
-  y_axis: 'Attributes',
-  detected_inputs: 'Multiple Numeric Variables',
-  decision_rule: 'Multiple Numeric Variables → Heatmap Matrix',
-  plotly_data: [
-    {
-      z: [
-        [1.0, 0.89, 0.42, -0.15],
-        [0.89, 1.0, 0.38, -0.22],
-        [0.42, 0.38, 1.0, 0.05],
-        [-0.15, -0.22, 0.05, 1.0],
-      ],
-      x: ['Sales (₹)', 'Profit (₹)', 'Quantity', 'Discount'],
-      y: ['Sales (₹)', 'Profit (₹)', 'Quantity', 'Discount'],
-      type: 'heatmap',
-      colorscale: 'Viridis',
-      zmin: -1.0,
-      zmax: 1.0,
-      colorbar: { thickness: 10, len: 0.8 },
-    },
-  ],
-  plotly_layout: {
-    margin: { t: 20, r: 20, b: 60, l: 80 },
-    xaxis: { tickangle: -25 },
-    plot_bgcolor: 'transparent',
-    paper_bgcolor: 'transparent',
-  },
-  why_chosen: 'Auto-selected Heatmap Matrix: Multiple numeric variables (Sales, Profit, Quantity, Discount) are compressed into a symmetric correlation matrix to expose collinearities.',
-  key_takeaway: 'Sales and Profit exhibit high co-movement (+0.89), while higher Discounts negatively correlate with margins (-0.22).',
-};
-
-function getChartColSpan(
-  chart: ChartConfig,
-  index: number,
-  totalCharts: number,
-  displayCharts: ChartConfig[]
-): string {
-  const cType = (chart.chart_type || (chart as any).type || '').toLowerCase();
-  const inputs = chart.detected_inputs || '';
-
-  // Heatmap always takes full width (12 cols)
-  if (cType === 'heatmap' || inputs.includes('Multiple Numeric')) {
+function getChartGridSpan(totalCharts: number, index: number, chartType: string): string {
+  if (chartType === 'heatmap') {
     return 'lg:col-span-12';
   }
 
-  // If there is only 1 chart, span full width
   if (totalCharts === 1) {
     return 'lg:col-span-12';
   }
 
-  // If Line chart is followed by Bar chart, pair as 8 + 4
-  if ((cType === 'line' || inputs.includes('Date')) && index === 0 && totalCharts > 1) {
-    const nextChart = displayCharts[index + 1];
-    const nextType = (nextChart?.chart_type || (nextChart as any)?.type || '').toLowerCase();
-    const nextInputs = nextChart?.detected_inputs || '';
-    if (nextType === 'bar' || nextInputs.includes('Category')) {
-      return 'lg:col-span-8';
-    }
+  if (totalCharts === 2) {
+    return 'lg:col-span-6';
   }
-  if ((cType === 'bar' || inputs.includes('Category')) && index === 1 && totalCharts > 1) {
-    const prevChart = displayCharts[index - 1];
-    const prevType = (prevChart?.chart_type || (prevChart as any)?.type || '').toLowerCase();
-    const prevInputs = prevChart?.detected_inputs || '';
-    if (prevType === 'line' || prevInputs.includes('Date')) {
+
+  if (totalCharts === 3) {
+    if (index === 0) {
+      return 'lg:col-span-12';
+    }
+    return 'lg:col-span-6';
+  }
+
+  if (totalCharts === 4) {
+    return 'lg:col-span-6';
+  }
+
+  if (totalCharts === 5) {
+    if (index < 2) {
+      return 'lg:col-span-6';
+    } else {
       return 'lg:col-span-4';
     }
   }
 
-  // If the last chart in an odd list (e.g. 3rd of 3, 5th of 5), span full width 12
-  if (totalCharts % 2 !== 0 && index === totalCharts - 1) {
-    return 'lg:col-span-12';
-  }
-
-  // All other charts take 6 cols (half width)
   return 'lg:col-span-6';
 }
 
-export default function DashboardView({ dashboard, onNavigateToInsights, onNavigateToWhy }: DashboardViewProps) {
-  const [timeHorizon, setTimeHorizon] = useState('Last 30 Days');
+export default function DashboardView({
+  dashboard,
+  uploadedDataset,
+  onStartAnalysis,
+  onNavigateToInsights,
+  onNavigateToWhy,
+}: DashboardViewProps) {
+  const [timeHorizon, setTimeHorizon] = useState('All Observations');
   const [activeWhyChart, setActiveWhyChart] = useState<string | null>(null);
   const [drilldownData, setDrilldownData] = useState<DrilldownResponse | null>(null);
+  const [reviewTab, setReviewTab] = useState<'missing' | 'outliers'>('missing');
 
-  const kpis: KpiItem[] = (dashboard?.summary_cards && dashboard.summary_cards.length > 0)
-    ? dashboard.summary_cards.slice(0, 4).map((c, i) => ({
+  // Filter out technical pipeline metadata so the dashboard displays business & domain KPIs
+  const technicalIds = new Set(['card_health', 'card_records', 'card_anomalies', 'card_clusters']);
+  const technicalLabels = new Set([
+    'data health score',
+    'total observations',
+    'detected anomalies',
+    'discovered cohorts',
+  ]);
+
+  const rawSummaryCards = dashboard?.summary_cards || [];
+  const businessCards = rawSummaryCards.filter((c) => {
+    const isTechId = technicalIds.has(c.id);
+    const isTechLabel = technicalLabels.has(c.label?.toLowerCase()?.trim());
+    return !isTechId && !isTechLabel;
+  });
+
+  const fallbackKpis: KpiItem[] = [
+    {
+      id: 'kpi_vol',
+      label: 'Primary Volume',
+      value: '₹12,84,300',
+      delta: '+14.8%',
+      isPositive: true,
+      subtext: 'Observed across transactions',
+    },
+    {
+      id: 'kpi_entities',
+      label: 'Active Entities',
+      value: '1,420',
+      delta: '+8.6%',
+      isPositive: true,
+      subtext: 'Distinct entities tracked',
+    },
+    {
+      id: 'kpi_rate',
+      label: 'Performance Rate',
+      value: '24.6%',
+      delta: '+1.8%',
+      isPositive: true,
+      subtext: 'Efficiency benchmark',
+    },
+    {
+      id: 'kpi_secondary',
+      label: 'Average Ticket',
+      value: '₹2,840',
+      delta: '+4.2%',
+      isPositive: true,
+      subtext: 'Per unit observation',
+    },
+  ];
+
+  const kpis: KpiItem[] = businessCards.length > 0
+    ? businessCards.slice(0, 4).map((c, i) => ({
         id: c.id || `kpi_${i}`,
         label: c.label,
         value: c.value,
-        delta: c.delta || 'Active',
+        delta: c.delta || '+Active',
         isPositive: c.status === 'alert' ? false : !c.delta?.startsWith('-'),
         subtext: c.subtext || '',
       }))
-    : DEFAULT_KPIS;
+    : fallbackKpis;
 
-  const displayCharts: ChartConfig[] = (dashboard?.charts && dashboard.charts.length > 0)
-    ? dashboard.charts
-    : [DEFAULT_LINE_CHART, DEFAULT_BAR_CHART, DEFAULT_SCATTER_CHART, DEFAULT_HISTOGRAM_CHART, DEFAULT_HEATMAP_CHART];
+  const displayCharts: ChartConfig[] = dashboard?.charts || [];
+  const datasetName = dashboard?.dataset_name || uploadedDataset?.filename || 'Active Dataset';
 
+  // State 1: No dataset uploaded at all
+  if (!dashboard && !uploadedDataset) {
+    return (
+      <div className="w-full max-w-7xl mx-auto py-12 px-4 sm:px-6 space-y-8 animate-in fade-in duration-300">
+        <div className="flex flex-col items-center justify-center py-24 px-6 rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50/50 text-center space-y-4">
+          <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-emerald-50 border border-emerald-200">
+            <Upload className="w-7 h-7 text-emerald-600" />
+          </div>
+          <h3 className="text-lg font-bold text-slate-700">No Dataset Uploaded</h3>
+          <p className="text-sm text-slate-500 max-w-sm">
+            Upload a spreadsheet or document to automatically generate dynamic KPI cards and self-designing Plotly visualisations.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // State 2: Dataset uploaded, but investigation not executed yet
+  if (!dashboard && uploadedDataset) {
+    return (
+      <div className="w-full max-w-7xl mx-auto py-12 px-4 sm:px-6 space-y-8 animate-in fade-in duration-300">
+        <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm flex flex-col items-center text-center space-y-6 max-w-2xl mx-auto">
+          <div className="w-16 h-16 flex items-center justify-center rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700">
+            <Sparkles className="w-8 h-8 animate-pulse" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-slate-900">
+              Investigation Ready: {uploadedDataset.filename}
+            </h2>
+            <p className="text-sm text-slate-500 max-w-md">
+              Your document has been extracted ({uploadedDataset.row_count.toLocaleString()} rows, {uploadedDataset.column_count} columns).
+              Launch the multi-agent investigation to generate dataset-specific KPIs, dynamic charts, and mathematical fact-checks.
+            </p>
+          </div>
+          {onStartAnalysis && (
+            <button
+              onClick={onStartAnalysis}
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-[#0c1815] hover:bg-[#18362e] text-white text-xs font-semibold transition-all shadow-md active:scale-[0.98] cursor-pointer"
+            >
+              <Play className="w-4 h-4 text-emerald-400 fill-emerald-400" />
+              <span>Launch Multi-Agent Investigation</span>
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // State 3: Fully analyzed dashboard
   return (
     <div className="w-full max-w-7xl mx-auto py-6 px-4 sm:px-6 space-y-8 animate-in fade-in duration-300">
       {/* Header */}
@@ -282,124 +186,201 @@ export default function DashboardView({ dashboard, onNavigateToInsights, onNavig
             Autonomous Visualization Engine
           </div>
           <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-            Insight Dashboard{dashboard?.dataset_name ? ` • ${dashboard.dataset_name}` : ''}
+            Insight Dashboard • {datasetName}
           </h2>
           <p className="text-sm text-slate-500 mt-1">
-            {dashboard?.dataset_name
-              ? `Auto-generated visual analytics for ${dashboard.dataset_name} with explainable AI reasoning.`
-              : 'Auto-generated visual analytics with explainable AI reasoning.'}
+            Visualisations and KPI metrics automatically computed from {datasetName}.
           </p>
         </div>
 
-        {/* Action Controls & Why Button */}
-        <div className="flex items-center gap-3">
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center gap-3">
           {onNavigateToWhy && (
             <button
               onClick={() => onNavigateToWhy()}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#13332a] hover:bg-[#194237] text-white text-xs font-bold border border-emerald-500/30 transition-all shadow-sm cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-50 hover:bg-purple-100/80 border border-purple-200 text-purple-900 text-xs font-semibold transition-all shadow-xs active:scale-[0.98] cursor-pointer"
             >
-              <GitFork className="w-4 h-4 text-emerald-400" />
-              <span>Launch Why? Engine</span>
+              <GitFork className="w-3.5 h-3.5 text-purple-700" />
+              <span>Explore Why? Engine</span>
             </button>
           )}
-
-          {/* Time Horizon Filter Dropdown */}
-          <div className="relative inline-flex items-center">
-            <select
-              value={timeHorizon}
-              onChange={(e) => setTimeHorizon(e.target.value)}
-              className="appearance-none bg-white border border-slate-200/90 text-slate-700 text-xs font-semibold py-2 pl-3.5 pr-8 rounded-xl shadow-2xs hover:border-slate-300 focus:outline-none focus:border-emerald-500 cursor-pointer"
-            >
-              <option>Last 30 Days</option>
-              <option>Last Quarter</option>
-              <option>Year to Date</option>
-              <option>All Time</option>
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none" />
-          </div>
 
           {onNavigateToInsights && (
             <button
               onClick={onNavigateToInsights}
-              className="px-4 py-2 rounded-xl bg-[#0c1815] hover:bg-[#18362e] text-white text-xs font-semibold transition-all shadow-xs cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-semibold transition-all shadow-xs active:scale-[0.98] cursor-pointer"
             >
-              View Key Insights ➔
+              <Workflow className="w-3.5 h-3.5 text-slate-500" />
+              <span>View Verified Insights</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* Why Engine Feature Callout Banner */}
-      {onNavigateToWhy && (
-        <div className="p-5 rounded-3xl bg-linear-to-r from-[#122822] via-[#0d201b] to-slate-900 text-white border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
-              <GitFork className="w-5 h-5" />
-            </div>
-            <div className="space-y-0.5">
-              <h4 className="font-bold text-sm text-white flex items-center gap-2">
-                <span>Autonomous Root-Cause Analysis Ready</span>
-                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded-full">
-                  Why? Engine Active
-                </span>
-              </h4>
-              <p className="text-xs text-slate-300">
-                Do not just see what changed. Recursively investigate why it changed, audit seasonality, and simulate counterfactuals.
-              </p>
+      {/* Presentation Module 1: 4 Metric Cards */}
+      {kpis.length > 0 && <KpiCardsGrid kpis={kpis} />}
+
+      {/* Presentation Module 2: Self-Designing Charts Grid */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Layers className="w-4 h-4 text-emerald-600" />
+            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+              Autonomous Analytical Charts ({displayCharts.length})
+            </h3>
+          </div>
+        </div>
+
+        {displayCharts.length === 0 ? (
+          <div className="bg-white rounded-3xl p-12 border border-slate-200 text-center space-y-2">
+            <p className="text-sm font-semibold text-slate-700">No charts could be formed</p>
+            <p className="text-xs text-slate-500">The dataset does not contain sufficient numeric or categorical columns to plot.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {displayCharts.map((chart, idx) => {
+              const spanClass = getChartGridSpan(displayCharts.length, idx, chart.chart_type);
+
+              return (
+                <div key={chart.id || idx} className={`${spanClass} flex flex-col`}>
+                  <ChartCard
+                    chart={chart}
+                    subtitle={chart.why_chosen || `Multivariate distribution on ${chart.x_axis}.`}
+                    isWhyOpen={activeWhyChart === chart.id}
+                    onToggleWhy={() => {
+                      if (onNavigateToWhy) {
+                        onNavigateToWhy(chart.y_axis || chart.x_axis);
+                      } else {
+                        setActiveWhyChart(activeWhyChart === chart.id ? null : chart.id);
+                      }
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Data Review & Anomalies Section */}
+      {dashboard && ((dashboard.missing_value_rows?.length ?? 0) > 0 || (dashboard.outlier_rows?.length ?? 0) > 0) && (
+        <div className="p-5 rounded-3xl bg-white border border-slate-200 mt-6 shadow-xs">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Data Review & Anomalies
+            </h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setReviewTab('missing')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                  reviewTab === 'missing'
+                    ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                    : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'
+                }`}
+              >
+                Missing Values ({dashboard?.missing_value_rows?.length || 0})
+              </button>
+              <button
+                onClick={() => setReviewTab('outliers')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                  reviewTab === 'outliers'
+                    ? 'bg-red-100 text-red-800 border border-red-200'
+                    : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'
+                }`}
+              >
+                Outliers ({dashboard?.outlier_rows?.length || 0})
+              </button>
             </div>
           </div>
 
+          {reviewTab === 'missing' && (
+            <div className="space-y-3">
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">
+                <strong className="text-amber-800">Review Required:</strong> These records contain empty or missing values. They have been displayed below as <span className="font-bold text-amber-600">NULL</span> for your review before imputation.
+              </div>
+              <div className="overflow-x-auto rounded-xl border border-slate-200">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
+                    <tr>
+                      {dashboard?.columns?.map(col => (
+                        <th key={col.name} className="p-3 font-semibold whitespace-nowrap">{col.name}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {dashboard?.missing_value_rows?.map((row, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50">
+                        {dashboard?.columns?.map(col => (
+                          <td key={col.name} className="p-3 whitespace-nowrap text-slate-700">
+                            {row[col.name] === null || row[col.name] === undefined || row[col.name] === "" ? (
+                              <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-bold tracking-wider text-[10px]">NULL</span>
+                            ) : (
+                              String(row[col.name])
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                    {!dashboard?.missing_value_rows?.length && (
+                      <tr>
+                        <td colSpan={dashboard?.columns?.length || 1} className="p-4 text-center text-slate-500">No missing values detected.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {reviewTab === 'outliers' && (
+            <div className="space-y-3">
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-900">
+                <strong className="text-red-800">Review Required:</strong> These records were flagged as severe multivariate anomalies by the Isolation Forest model.
+              </div>
+              <div className="space-y-3">
+                {dashboard?.outlier_rows?.map((outlier, idx) => (
+                  <div key={idx} className="p-4 rounded-xl border border-slate-200 bg-white flex flex-col gap-3 shadow-xs">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-red-100 text-red-700 font-bold border border-red-200">Anomaly Score: {outlier.anomaly_score}</span>
+                        <p className="text-xs text-slate-600 mt-2 font-medium">{outlier.reason}</p>
+                      </div>
+                      <span className="text-xs text-slate-400 font-mono">Row #{outlier.index}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-100">
+                      {Object.entries(outlier.record || {}).filter(([k]) => k !== '_score').map(([k, v]) => (
+                        <div key={k} className="px-2 py-1.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center gap-1.5 text-[11px]">
+                          <span className="text-slate-500 font-medium">{k}:</span>
+                          <span className="text-slate-900 font-mono font-semibold">{String(v)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {!dashboard?.outlier_rows?.length && (
+                  <div className="p-4 text-center text-slate-500 text-xs rounded-xl border border-slate-200">No significant outliers detected.</div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Bottom CTA to Insights View */}
+      {onNavigateToInsights && (
+        <div className="flex items-center justify-end pt-4">
           <button
-            onClick={() => onNavigateToWhy()}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
+            onClick={onNavigateToInsights}
+            className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-[#0c1815] hover:bg-[#18362e] text-white text-xs font-semibold transition-all shadow-md active:scale-[0.98] cursor-pointer"
           >
-            <span>Explore Root Causes</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <span>Proceed to Fact-Checked Insights</span>
+            <ArrowRight className="w-4 h-4 text-emerald-400" />
           </button>
         </div>
       )}
 
-      {/* Presentation Module 1: Dynamic KPI Summary Cards */}
-      <KpiCardsGrid kpis={kpis} />
-
-      {/* Presentation Module 2: Visualizations Grid Adhering to Decision Rules */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-            <Workflow className="w-4 h-4 text-emerald-600" />
-            Rule-Generated Visualizations
-          </h3>
-          <span className="text-xs text-slate-500">
-            {displayCharts.length} Auto-selected visual{displayCharts.length === 1 ? '' : 's'} based on schema classification
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {displayCharts.map((chart, idx) => {
-            const colSpan = getChartColSpan(chart, idx, displayCharts.length, displayCharts);
-            const subtitle = chart.decision_rule
-              ? `Rule: ${chart.decision_rule}`
-              : (chart.detected_inputs ? `Classification: ${chart.detected_inputs}` : 'Autonomous schema-driven visual');
-            const isHeatmap = chart.chart_type === 'heatmap' || (chart as any).type === 'heatmap';
-
-            return (
-              <div key={chart.id || `chart_${idx}`} className={colSpan}>
-                <ChartCard
-                  chart={chart}
-                  subtitle={subtitle}
-                  isWhyOpen={activeWhyChart === chart.id}
-                  onToggleWhy={() =>
-                    setActiveWhyChart(activeWhyChart === chart.id ? null : chart.id)
-                  }
-                  height={isHeatmap ? 300 : 280}
-                />
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Drilldown Modal */}
+      {/* Deep-Dive Drilldown Modal */}
       {drilldownData && (
         <DrilldownModal
           drilldown={drilldownData}

@@ -131,36 +131,32 @@ export default function WhyEngineView({
   return (
     <div className="space-y-8 animate-in fade-in duration-300 pb-16">
       {/* View Header & Metric Selector Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/90 shadow-xs">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#13332a] text-emerald-400 flex items-center justify-center shadow-xs">
-              <GitFork className="w-5 h-5" />
-            </div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                Why? Engine
-              </h1>
-              <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100/70 px-2.5 py-0.5 rounded-full border border-emerald-300">
-                Root-Cause AI
-              </span>
-            </div>
+      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 bg-white pb-6 border-b border-slate-200">
+        <div className="space-y-2 max-w-2xl">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
+            <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-600 font-bold">
+              Root-Cause AI Active
+            </span>
           </div>
-          <p className="text-xs text-slate-500">
+          <h1 className="text-3xl md:text-5xl font-bold text-slate-900 tracking-tight leading-none">
+            Why Engine
+          </h1>
+          <p className="text-sm text-slate-500 max-w-xl leading-relaxed pt-2">
             Autonomous multi-level investigation, mathematical contribution quantification, and counterfactual simulation.
           </p>
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap">
           {/* Target Metric Selector */}
           {whyData.available_metrics && whyData.available_metrics.length > 0 && (
-            <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-200">
-              <span className="text-xs font-semibold text-slate-500 pl-2">Target Metric:</span>
+            <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-lg border border-slate-200">
+              <span className="text-[11px] font-medium text-slate-500 pl-3">Target Metric</span>
               <select
                 value={selectedMetric || whyData.target_metric}
                 onChange={(e) => handleMetricChange(e.target.value)}
-                className="bg-white text-xs font-bold text-slate-800 rounded-xl px-3 py-1.5 border border-slate-200 focus:outline-emerald-500 cursor-pointer shadow-2xs"
+                className="bg-white text-xs font-semibold text-slate-900 rounded-md px-3 py-1.5 border-none shadow-xs focus:ring-2 focus:ring-slate-900 cursor-pointer"
               >
                 {whyData.available_metrics.map((m) => (
                   <option key={m} value={m}>
@@ -171,20 +167,18 @@ export default function WhyEngineView({
             </div>
           )}
 
-          {/* Compare Datasets Modal Button */}
           <button
             onClick={() => setIsCompareModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 shadow-2xs cursor-pointer transition-all"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 shadow-xs cursor-pointer transition-colors"
           >
-            <GitCompare className="w-3.5 h-3.5 text-slate-500" />
-            <span>Compare Datasets</span>
+            <GitCompare className="w-3.5 h-3.5 text-slate-400" />
+            <span>Compare</span>
           </button>
 
-          {/* Refresh / Re-run */}
           <button
             onClick={() => fetchInvestigation(selectedMetric)}
             disabled={isLoading}
-            className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
+            className="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
             title="Re-run Autonomous Investigation"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -192,76 +186,68 @@ export default function WhyEngineView({
         </div>
       </div>
 
-      {/* Primary Shift Executive Banner */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-linear-to-br from-slate-900 via-slate-900 to-[#102923] text-white border border-slate-800 shadow-md space-y-6">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              <span className="text-[11px] font-mono uppercase tracking-widest text-emerald-400 font-bold">
-                Significant Shift Detected
-              </span>
-            </div>
-            <h2 className="text-xl sm:text-3xl font-black text-white tracking-tight leading-snug">
-              {whyData.executive_headline || `Why Did ${whyData.target_metric} ${isDecline ? 'Decline' : 'Shift'}?`}
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
-              {whyData.narrative_summary}
-            </p>
-          </div>
-
-          {/* Metric KPIs */}
-          <div className="flex items-center gap-3 shrink-0 flex-wrap">
-            <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 min-w-[130px] space-y-1">
-              <span className="text-[10px] font-semibold uppercase text-slate-400">Baseline</span>
-              <p className="text-lg font-bold font-mono text-slate-200">
-                {targetSummary.baseline_value?.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-              </p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 min-w-[130px] space-y-1">
-              <span className="text-[10px] font-semibold uppercase text-slate-400">Current</span>
-              <p className="text-lg font-bold font-mono text-slate-200">
-                {targetSummary.current_value?.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-              </p>
-            </div>
-
-            <div className={`p-4 rounded-2xl border min-w-[140px] space-y-1 ${
-              isDecline ? 'bg-rose-500/20 border-rose-500/40 text-rose-300' : 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-            }`}>
-              <span className="text-[10px] font-semibold uppercase">Total Delta</span>
-              <p className="text-xl font-black font-mono">
-                {targetSummary.delta_pct >= 0 ? '+' : ''}{targetSummary.delta_pct?.toFixed(1)}%
-              </p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-[#13332a] border border-emerald-500/40 min-w-[130px] space-y-1">
-              <span className="text-[10px] font-semibold uppercase text-emerald-300">Confidence</span>
-              <p className="text-xl font-black font-mono text-emerald-400">
-                {whyData.evidence_score?.toFixed(0)}/100
-              </p>
-            </div>
+      {/* Primary Shift Executive Banner (Linear-Style Minimalist Grid) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
+        {/* Left Narrative */}
+        <div className="lg:col-span-7 space-y-4">
+          <h2 className="text-2xl md:text-4xl font-semibold text-slate-900 tracking-tight leading-tight">
+            {whyData.executive_headline || `Why Did ${whyData.target_metric} ${isDecline ? 'Decline' : 'Shift'}?`}
+          </h2>
+          <p className="text-base text-slate-600 leading-relaxed max-w-[65ch]">
+            {whyData.narrative_summary}
+          </p>
+          
+          {/* Domain & Guardrail Row */}
+          <div className="pt-4 flex items-center gap-4 flex-wrap text-xs text-slate-500 border-t border-slate-100">
+            <span className="font-medium text-slate-700 bg-slate-100 px-2 py-1 rounded-md">
+              {whyData.dataset_fingerprint?.detected_domain || 'General Business'}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              {whyData.seasonality_report?.seasonality_detected ? (
+                <span className="inline-flex items-center gap-1 text-amber-600 font-medium bg-amber-50 px-2 py-1 rounded-md">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  Recurring Pattern
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-emerald-600 font-medium bg-emerald-50 px-2 py-1 rounded-md">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Isolated Shift
+                </span>
+              )}
+            </span>
+            <span className="bg-slate-50 border border-slate-200 px-2 py-1 rounded-md">
+              Confounder Risk: <strong className="text-slate-700">{whyData.confounding_audit?.confounding_risk || 'Low'}</strong>
+            </span>
           </div>
         </div>
 
-        {/* Domain and Guardrail Pill Row */}
-        <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3 flex-wrap text-xs text-slate-400">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-slate-300">
-              Domain: {whyData.dataset_fingerprint?.detected_domain || 'General Business'}
-            </span>
-            <span className="text-slate-600">•</span>
-            <span>
-              Seasonality: {whyData.seasonality_report?.seasonality_detected ? '⚠️ Recurring Pattern Detected' : '✅ Isolated Shift'}
-            </span>
-            <span className="text-slate-600">•</span>
-            <span>
-              Confounder Risk: {whyData.confounding_audit?.confounding_risk || 'Low'}
-            </span>
+        {/* Right KPIs (Bento Grid Style) */}
+        <div className="lg:col-span-5 grid grid-cols-2 gap-3">
+          <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Baseline</span>
+            <p className="text-2xl font-semibold text-slate-900">
+              {targetSummary.baseline_value?.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            </p>
           </div>
-
-          <div className="text-[11px] font-mono text-slate-500">
-            {whyData.timeline_steps?.length || 7} Audit Milestones Verified
+          <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Current</span>
+            <p className="text-2xl font-semibold text-slate-900">
+              {targetSummary.current_value?.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            </p>
+          </div>
+          <div className={`p-5 rounded-2xl border space-y-2 ${
+            isDecline ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'
+          }`}>
+            <span className={`text-[11px] font-bold uppercase tracking-wider ${isDecline ? 'text-rose-600' : 'text-emerald-700'}`}>Total Delta</span>
+            <p className={`text-3xl font-bold tracking-tight ${isDecline ? 'text-rose-700' : 'text-emerald-800'}`}>
+              {targetSummary.delta_pct >= 0 ? '+' : ''}{targetSummary.delta_pct?.toFixed(1)}%
+            </p>
+          </div>
+          <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Confidence</span>
+            <p className="text-3xl font-bold tracking-tight text-white">
+              {whyData.evidence_score?.toFixed(0)}<span className="text-lg text-slate-500">/100</span>
+            </p>
           </div>
         </div>
       </div>

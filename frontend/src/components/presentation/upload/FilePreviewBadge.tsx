@@ -98,10 +98,10 @@ export default function FilePreviewBadge({
         className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#0c1815] hover:bg-[#18362e] text-white text-xs font-semibold transition-all shadow-md active:scale-[0.98] disabled:opacity-60 cursor-pointer"
       >
         {isUploading ? (
-          <span>Ingesting & Investigating...</span>
+          <span>Analyzing Dataset...</span>
         ) : (
           <>
-            <span>Launch Multi-Agent Analysis</span>
+            <span>Start Analysis</span>
             <ArrowRight className="w-4 h-4 text-emerald-400" />
           </>
         )}

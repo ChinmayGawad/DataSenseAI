@@ -15,9 +15,9 @@ export const INVESTIGATION_STEPS: StepItem[] = [
   { id: 'missing', label: 'Checking for missing values', minProgress: 40 },
   { id: 'duplicates', label: 'Identifying duplicates', minProgress: 55 },
   { id: 'cleaning', label: 'Cleaning and standardizing data', minProgress: 70 },
-  { id: 'analysis', label: 'Running statistical & ML analysis', minProgress: 82 },
+  { id: 'analysis', label: 'Running analysis (correlation, clustering, outliers...)', minProgress: 82 },
   { id: 'visualisations', label: 'Generating visualisations', minProgress: 92 },
-  { id: 'insights', label: 'Synthesizing plain-language insights', minProgress: 100 },
+  { id: 'insights', label: 'Preparing insights', minProgress: 100 },
 ];
 
 interface ProgressChecklistProps {
@@ -87,9 +87,9 @@ export default function ProgressChecklist({ currentProgress }: ProgressChecklist
                 }`}
               >
                 {status === 'completed'
-                  ? 'Done'
+                  ? 'Completed'
                   : status === 'in_progress'
-                  ? 'Running'
+                  ? 'In Progress'
                   : 'Pending'}
               </span>
             </div>

@@ -131,59 +131,194 @@ def execute_investigation_pipeline(job_id: str, file_path: Path, filename: str) 
             "confidence_score": float(ins.get("confidence_score", 0.98)),
         })
 
-    # 4. Construct Dynamic Domain & Quality KPI Cards from Actual Dataset
+    # 4. Construct Dynamic Business Domain KPI Cards that define the dataset (Revenue, Customers, Conversion, etc.)
     domain_kpi_cards = []
     try:
         df_for_kpis = storage_service.load_dataframe(file_path)
+        total_rows = len(df_for_kpis)
         num_cols = df_for_kpis.select_dtypes(include=["number"]).columns.tolist()
-        candidate_cols = [
-            c for c in num_cols 
-            if not c.lower().endswith("id") 
-            and "patient" not in c.lower() 
-            and "order" not in c.lower() 
-            and "campaign" not in c.lower()
-            and "unnamed" not in c.lower()
-            and "row" not in c.lower()
-        ]
-        for col in candidate_cols[:2]:
-            s = df_for_kpis[col].dropna()
-            if len(s) == 0:
-                continue
-            total_val = float(s.sum())
-            mean_val = float(s.mean())
-            clean_title = col.replace("_", " ").title()
-            is_currency = any(kw in col.lower() for kw in ["sales", "profit", "revenue", "spend", "cost", "price", "budget", "amount", "fee"])
 
-            if is_currency:
-                if total_val >= 1e7:
-                    val_str = f"₹{total_val / 1e7:.2f} Cr"
-                elif total_val >= 1e5:
-                    val_str = f"₹{total_val / 1e5:.2f} L"
-                else:
-                    val_str = f"₹{total_val:,.0f}"
-                label_str = f"Total {clean_title}"
-                subtext_str = f"Avg ₹{mean_val:,.1f} per entry"
+        def fmt_val(v: float, is_currency: bool = True) -> str:
+            if not is_currency:
+                return f"{v:,.0f}" if abs(v) >= 1000 else f"{v:,.1f}"
+            if abs(v) >= 1e7:
+                return f"₹{v / 1e7:.2f} Cr"
+            elif abs(v) >= 1e5:
+                return f"₹{v / 1e5:.2f} L"
             else:
-                if total_val > 500 and "rate" not in col.lower() and "score" not in col.lower() and "bp" not in col.lower() and "age" not in col.lower():
-                    val_str = f"{total_val:,.0f}"
-                    label_str = f"Total {clean_title}"
-                    subtext_str = f"Avg {mean_val:.1f} per entry"
-                else:
-                    val_str = f"{mean_val:.1f}"
-                    label_str = f"Avg {clean_title}"
-                    subtext_str = f"Range: {s.min():.1f} – {s.max():.1f}"
+                return f"₹{v:,.0f}"
 
+        # 1. PRIMARY FINANCIAL / VOLUME KPI (Total Revenue / Total Spend / Total Score / Primary Metric)
+        fin_keywords = ["revenue", "sales", "amount", "spend", "cost", "price", "budget", "turnover", "gmv", "fee", "val", "total", "income", "salary", "balance"]
+        fin_col = next((c for c in num_cols if any(k in c.lower() for k in fin_keywords)), None)
+        if not fin_col and num_cols:
+            fin_col = max(num_cols, key=lambda c: float(df_for_kpis[c].dropna().sum()) if len(df_for_kpis[c].dropna()) else 0)
+
+        total_fin = 0.0
+        is_curr = False
+        if fin_col:
+            s_fin = df_for_kpis[fin_col].dropna()
+            total_fin = float(s_fin.sum())
+            mean_fin = float(s_fin.mean()) if len(s_fin) else 0.0
+            is_curr = any(k in fin_col.lower() for k in ["revenue", "sales", "spend", "cost", "price", "budget", "amount", "income", "salary", "profit", "fee", "turnover", "gmv"])
+            label = f"Total {fin_col.replace('_', ' ').title()}" if not any(k in fin_col.lower() for k in ["revenue", "sales"]) else "Total Revenue"
             domain_kpi_cards.append({
-                "id": f"kpi_{col}",
-                "label": label_str,
-                "value": val_str,
+                "id": "kpi_primary_revenue",
+                "label": label,
+                "value": fmt_val(total_fin, is_curr),
                 "delta": "+Active",
-                "subtext": subtext_str,
+                "subtext": f"Avg {fmt_val(mean_fin, is_curr)} per record",
                 "status": "normal",
                 "icon": "TrendingUp"
             })
+        else:
+            domain_kpi_cards.append({
+                "id": "kpi_primary_revenue",
+                "label": "Total Observations",
+                "value": f"{total_rows:,}",
+                "delta": "+Active",
+                "subtext": f"{len(df_for_kpis.columns)} columns analyzed",
+                "status": "normal",
+                "icon": "TrendingUp"
+            })
+
+        # 2. ACTIVE ENTITIES / COHORTS / REACH
+        entity_keywords = ["customer", "client", "account", "user", "patient", "buyer", "lead", "visitor", "member", "subscriber", "id", "name", "employee", "student", "doctor", "device", "store", "product", "item", "category"]
+        entity_col = next((c for c in df_for_kpis.columns if any(k in c.lower() for k in entity_keywords)), None)
+        if entity_col:
+            n_entities = int(df_for_kpis[entity_col].nunique())
+            ent_label = f"Unique {entity_col.replace('_', ' ').title().replace(' Id', 's').replace(' Name', 's')}"
+            domain_kpi_cards.append({
+                "id": "kpi_active_customers",
+                "label": ent_label,
+                "value": f"{n_entities:,}",
+                "delta": f"{round((n_entities/max(total_rows, 1))*100, 1)}% unique",
+                "subtext": "Unique entities tracked",
+                "status": "normal",
+                "icon": "Users"
+            })
+        else:
+            domain_kpi_cards.append({
+                "id": "kpi_active_customers",
+                "label": "Unique Records",
+                "value": f"{total_rows:,}",
+                "delta": "100%",
+                "subtext": "Dataset sample space",
+                "status": "normal",
+                "icon": "Users"
+            })
+
+        # 3. EFFICIENCY / RATIO / RATE / MEAN PROPERTY
+        rate_keywords = ["conversion", "cvr", "ctr", "margin", "rate", "score", "ratio", "success", "retention", "roi", "discount", "accuracy", "percentage", "pct", "outcome", "prob"]
+        rate_col = next((c for c in num_cols if any(k in c.lower() for k in rate_keywords)), None)
+        profit_col = next((c for c in num_cols if "profit" in c.lower()), None)
+        sales_col = next((c for c in num_cols if any(k in c.lower() for k in ["sales", "revenue"])), None)
+
+        if rate_col:
+            mean_rate = float(df_for_kpis[rate_col].dropna().mean())
+            if 0 < mean_rate <= 1.0:
+                mean_rate *= 100
+            domain_kpi_cards.append({
+                "id": "kpi_conversion_rate",
+                "label": rate_col.replace("_", " ").title() if any(w in rate_col.lower() for w in ["rate", "margin", "score", "ratio"]) else f"{rate_col.replace('_', ' ').title()} Rate",
+                "value": f"{mean_rate:.1f}%",
+                "delta": "Mean",
+                "subtext": f"Across {len(df_for_kpis[rate_col].dropna()):,} valid rows",
+                "status": "normal",
+                "icon": "Zap"
+            })
+        elif profit_col and sales_col:
+            s_prof = float(df_for_kpis[profit_col].dropna().sum())
+            s_sale = float(df_for_kpis[sales_col].dropna().sum())
+            margin = (s_prof / s_sale * 100) if s_sale > 0 else 0.0
+            domain_kpi_cards.append({
+                "id": "kpi_conversion_rate",
+                "label": "Profit Margin",
+                "value": f"{margin:.1f}%",
+                "delta": "Aggregate",
+                "subtext": "Operating margin",
+                "status": "normal",
+                "icon": "Zap"
+            })
+        elif len(num_cols) >= 2:
+            sec_num = [c for c in num_cols if c != fin_col][0]
+            sec_mean = float(df_for_kpis[sec_num].dropna().mean())
+            is_sec_curr = any(k in sec_num.lower() for k in ["price", "cost", "fee", "val", "salary"])
+            domain_kpi_cards.append({
+                "id": "kpi_conversion_rate",
+                "label": f"Mean {sec_num.replace('_', ' ').title()}",
+                "value": fmt_val(sec_mean, is_currency=is_sec_curr),
+                "delta": "Average",
+                "subtext": f"Std Dev: {df_for_kpis[sec_num].dropna().std():.1f}",
+                "status": "normal",
+                "icon": "Zap"
+            })
+        else:
+            domain_kpi_cards.append({
+                "id": "kpi_conversion_rate",
+                "label": "Data Completeness",
+                "value": f"{100.0 - quality.get('missing_cell_percentage', 0.0):.1f}%",
+                "delta": "Valid",
+                "subtext": "Complete cell hygiene",
+                "status": "normal",
+                "icon": "Zap"
+            })
+
+        # 4. SECONDARY VOLUME / SECONDARY METRIC / MEASURE DISPERSION
+        rem_num_cols = [c for c in num_cols if c != fin_col and c != rate_col]
+        if profit_col and profit_col != fin_col:
+            prof_total = float(df_for_kpis[profit_col].dropna().sum())
+            domain_kpi_cards.append({
+                "id": "kpi_avg_order_value",
+                "label": "Total Profit",
+                "value": fmt_val(prof_total, is_currency=True),
+                "delta": "Net Return",
+                "subtext": "Bottom-line performance",
+                "status": "normal",
+                "icon": "Activity"
+            })
+        elif rem_num_cols:
+            kpi4_col = rem_num_cols[0]
+            kpi4_sum = float(df_for_kpis[kpi4_col].dropna().sum())
+            kpi4_is_curr = any(k in kpi4_col.lower() for k in ["price", "cost", "fee", "val", "salary", "spend"])
+            domain_kpi_cards.append({
+                "id": "kpi_avg_order_value",
+                "label": f"Total {kpi4_col.replace('_', ' ').title()}",
+                "value": fmt_val(kpi4_sum, is_currency=kpi4_is_curr),
+                "delta": "Cumulative",
+                "subtext": f"Range: {df_for_kpis[kpi4_col].min():.0f} - {df_for_kpis[kpi4_col].max():.0f}",
+                "status": "normal",
+                "icon": "Activity"
+            })
+        elif fin_col and total_rows > 0:
+            aov = total_fin / max(total_rows, 1)
+            domain_kpi_cards.append({
+                "id": "kpi_avg_order_value",
+                "label": f"Avg {fin_col.replace('_', ' ').title()} / Row",
+                "value": fmt_val(aov, is_currency=is_curr),
+                "delta": "Per Record",
+                "subtext": "Mean distribution",
+                "status": "normal",
+                "icon": "Activity"
+            })
+        else:
+            domain_kpi_cards.append({
+                "id": "kpi_avg_order_value",
+                "label": "Total Features",
+                "value": f"{len(df_for_kpis.columns)}",
+                "delta": "Schema",
+                "subtext": f"{len(num_cols)} numeric attributes",
+                "status": "normal",
+                "icon": "Activity"
+            })
+
     except Exception:
-        pass
+        domain_kpi_cards = [
+            {"id": "kpi_primary_revenue", "label": "Total Observations", "value": f"{summary.get('total_rows_original', 0):,}", "delta": "Processed", "subtext": "Complete dataset ingest", "status": "normal", "icon": "TrendingUp"},
+            {"id": "kpi_active_customers", "label": "Detected Columns", "value": f"{summary.get('total_columns', 0):,}", "delta": "Features", "subtext": "Structured schema", "status": "normal", "icon": "Users"},
+            {"id": "kpi_conversion_rate", "label": "Health Score", "value": f"{health_score}%", "delta": quality_grade, "subtext": "Data hygiene quality", "status": "normal", "icon": "Zap"},
+            {"id": "kpi_avg_order_value", "label": "Cleaned Rows", "value": f"{summary.get('total_rows_cleaned', 0):,}", "delta": "Verified", "subtext": "Post-hygiene audit", "status": "normal", "icon": "Activity"},
+        ]
 
     outlier_info = ml.get("outlier_analysis", {})
     total_outliers = outlier_info.get("total_outliers", 0)
@@ -194,7 +329,7 @@ def execute_investigation_pipeline(job_id: str, file_path: Path, filename: str) 
     sil_score = clust_info.get("silhouette_avg", 0.0)
 
     summary_cards = [
-        *domain_kpi_cards,
+        *domain_kpi_cards[:4],
         {
             "id": "card_health",
             "label": "Data Health Score",
@@ -260,6 +395,25 @@ def execute_investigation_pipeline(job_id: str, file_path: Path, filename: str) 
         "initial_health_score": health_score,
     }
 
+    raw_sample = []
+    missing_value_rows = []
+    try:
+        if "df_for_kpis" in locals() and df_for_kpis is not None:
+            # Capture Missing Values
+            import pandas as pd
+            import numpy as np
+            missing_mask = df_for_kpis.isna().any(axis=1)
+            if missing_mask.any():
+                missing_df = df_for_kpis[missing_mask].head(25).copy()
+                # Replace NaNs with actual None so JSON serialization drops or keeps them as null
+                missing_df = missing_df.replace({np.nan: None, pd.NA: None})
+                missing_value_rows = missing_df.to_dict(orient="records")
+
+            clean_sample_df = df_for_kpis.head(15).fillna("")
+            raw_sample = clean_sample_df.to_dict(orient="records")
+    except Exception:
+        pass
+
     dashboard_data = {
         "job_id": job_id,
         "dataset_id": job_id,
@@ -272,6 +426,9 @@ def execute_investigation_pipeline(job_id: str, file_path: Path, filename: str) 
         "cleaning_summary": cleaning_view_summary,
         "columns": columns,
         "quality_report": quality_view_report,
+        "raw_rows": raw_sample,
+        "missing_value_rows": missing_value_rows,
+        "outlier_rows": top_anomalies,
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
     job_store.save_dashboard(job_id, dashboard_data)

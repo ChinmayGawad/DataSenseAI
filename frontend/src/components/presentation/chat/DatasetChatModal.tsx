@@ -11,7 +11,8 @@ import {
   ChevronRight, 
   Bot, 
   User,
-  ShieldCheck
+  ShieldCheck,
+  Lightbulb
 } from 'lucide-react';
 import { queryDataset } from '../../../lib/api';
 
@@ -203,8 +204,9 @@ export default function DatasetChatModal({
                       </div>
                     )}
                     {msg.takeaway && (
-                      <div className="text-[11px] text-slate-500 italic">
-                        💡 Key takeaway: {msg.takeaway}
+                      <div className="text-[11px] text-slate-500 italic flex items-center gap-1.5">
+                        <Lightbulb className="w-3.5 h-3.5 text-amber-500 shrink-0 inline" />
+                        <span>Key takeaway: {msg.takeaway}</span>
                       </div>
                     )}
 

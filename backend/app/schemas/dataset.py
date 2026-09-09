@@ -40,6 +40,16 @@ class ExtractedTableSummary(BaseModel):
     average_confidence: float = 100.0
 
 
+class FileMetadataItem(BaseModel):
+    filename: str
+    file_type: str = "spreadsheet"
+    file_size_bytes: int
+    row_count: int = 0
+    column_count: int = 0
+    extraction_confidence: float = 100.0
+    has_handwritten_content: bool = False
+
+
 class DatasetUploadResponse(BaseModel):
     dataset_id: str
     filename: str
@@ -48,6 +58,8 @@ class DatasetUploadResponse(BaseModel):
     column_count: int
     file_format: str
     file_type: str = "spreadsheet"
+    total_files_count: int = 1
+    files_summary: List[FileMetadataItem] = Field(default_factory=list)
     total_pages: int = 1
     tables_extracted: int = 1
     extraction_confidence: float = 100.0
@@ -56,6 +68,13 @@ class DatasetUploadResponse(BaseModel):
     uncertain_fields: List[UncertainFieldModel] = Field(default_factory=list)
     tables_summary: List[ExtractedTableSummary] = Field(default_factory=list)
     extraction_log: List[str] = Field(default_factory=list)
+    columns: List[ColumnDetail] = Field(default_factory=list)
+    numeric_columns: List[str] = Field(default_factory=list)
+    categorical_columns: List[str] = Field(default_factory=list)
+    datetime_columns: List[str] = Field(default_factory=list)
+    id_columns: List[str] = Field(default_factory=list)
+    sample_rows: List[Dict[str, Any]] = Field(default_factory=list)
+    health: Optional[HealthScoreResponse] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     message: str = "Dataset uploaded successfully"
 

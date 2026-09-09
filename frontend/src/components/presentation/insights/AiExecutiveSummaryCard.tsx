@@ -28,7 +28,7 @@ export default function AiExecutiveSummaryCard({
           <Sparkles className="w-5 h-5" />
         </div>
         <div>
-          <h4 className="font-bold text-slate-900 text-sm">AI Executive Summary</h4>
+          <h4 className="font-bold text-slate-900 text-sm">AI Summary</h4>
           <p className="text-[11px] text-slate-400">
             {datasetName ? `Synthesized for ${datasetName}` : 'Synthesized by 8 specialized agents'}
           </p>
@@ -39,9 +39,6 @@ export default function AiExecutiveSummaryCard({
         {topInsight ? (
           <>
             <p>
-              {totalObservations && (
-                <>Across <strong>{totalObservations} observations</strong>, </>
-              )}
               {topInsight.statement}
             </p>
             {secondaryInsight && (
@@ -51,14 +48,9 @@ export default function AiExecutiveSummaryCard({
             )}
           </>
         ) : (
-          <>
-            <p>
-              Across <strong>5,320 observations</strong>, top-line sales grew <strong>22.4%</strong> quarter-over-quarter, driven primarily by high-demand Technology products in the Western region.
-            </p>
-            <p>
-              However, excessive discounting (&gt;25%) in Furniture eroded <strong>-₹14,204</strong> in cumulative net margin. Implementing automated discount ceilings is projected to recover approximately <strong>₹28,000</strong> in annual operating income.
-            </p>
-          </>
+          <p>
+            Overall, the business is performing well, with strong sales growth and a loyal customer base. The Western region is the top performer. However, high discounts are reducing profitability, and a few unusual transactions should be reviewed.
+          </p>
         )}
       </div>
 

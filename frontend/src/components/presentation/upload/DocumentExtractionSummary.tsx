@@ -51,6 +51,9 @@ export default function DocumentExtractionSummary({ dataset }: DocumentExtractio
   };
 
   const getFormatIcon = () => {
+    if (fileType.includes('bundle') || (dataset.total_files_count && dataset.total_files_count > 1)) {
+      return <Layers className="w-5 h-5 text-emerald-600" />;
+    }
     if (fileType.includes('pdf')) return <FileText className="w-5 h-5 text-rose-500" />;
     if (fileType.includes('word')) return <FileText className="w-5 h-5 text-blue-500" />;
     if (fileType.includes('powerpoint')) return <Presentation className="w-5 h-5 text-amber-500" />;
@@ -60,6 +63,9 @@ export default function DocumentExtractionSummary({ dataset }: DocumentExtractio
   };
 
   const getFormatLabel = () => {
+    if (fileType.includes('bundle') || (dataset.total_files_count && dataset.total_files_count > 1)) {
+      return `Unified Document Bundle (${dataset.total_files_count || dataset.files_summary?.length || 2} Ingested Files)`;
+    }
     if (fileType === 'pdf_digital') return 'Digital PDF Document (Structured Tables)';
     if (fileType === 'pdf_scanned') return 'Scanned PDF Document (OCR Rasterized)';
     if (fileType === 'word_docx') return 'Microsoft Word Document (.docx)';

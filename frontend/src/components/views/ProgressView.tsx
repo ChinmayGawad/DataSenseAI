@@ -1,19 +1,21 @@
-'use client';
-
-import React from 'react';
-import { Sparkles, ArrowRight, AlertCircle, RotateCcw } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sparkles, ArrowRight, AlertCircle, RotateCcw, CheckSquare, Users } from 'lucide-react';
 import CircularProgress from '../ui/CircularProgress';
 import ProgressChecklist from '../presentation/progress/ProgressChecklist';
 import ProgressTipCard from '../presentation/progress/ProgressTipCard';
+import AgentTimeline from '../AgentTimeline';
 import { JobStatusResponse } from '../../lib/api';
 
 interface ProgressViewProps {
   jobStatus: JobStatusResponse | null;
+  datasetName?: string;
   onViewDashboard?: () => void;
   onRetry?: () => void;
 }
 
-export default function ProgressView({ jobStatus, onViewDashboard, onRetry }: ProgressViewProps) {
+export default function ProgressView({ jobStatus, datasetName, onViewDashboard, onRetry }: ProgressViewProps) {
+  const [activeTab, setActiveTab] = useState<'checklist' | 'agents'>('checklist');
+
   if (jobStatus?.status === 'failed') {
     return (
       <div className="w-full max-w-xl mx-auto py-12 px-4 text-center space-y-6 animate-in fade-in duration-300">
@@ -56,52 +58,101 @@ export default function ProgressView({ jobStatus, onViewDashboard, onRetry }: Pr
         <p className="text-sm text-slate-500 max-w-lg mx-auto">
           {isCompleted
             ? 'Your dataset has been cleaned, profiled, and verified by 8 specialized AI agents.'
-            : 'Please wait while our autonomous agents clean, profile, and synthesize verified insights from your data.'}
+            : 'Our AI is automatically understanding, cleaning and finding patterns in your data. This may take a few moments.'}
         </p>
       </div>
 
-      {/* Main Grid: Checklist on Left, Circular Progress on Right */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
-        {/* Presentation Module 1: 8-Step Checklist */}
-        <div className="md:col-span-7">
-          <ProgressChecklist currentProgress={currentProgress} />
-        </div>
-
-        {/* Presentation Module 2: Circular Progress Gauge & Tip */}
-        <div className="md:col-span-5 space-y-6">
-          <div className="bg-white rounded-3xl p-8 border border-slate-200/90 shadow-sm flex flex-col items-center text-center space-y-6">
-            <CircularProgress
-              percentage={currentProgress}
-              size={170}
-              strokeWidth={13}
-            />
-
-            <div className="space-y-1">
-              <h4 className="font-bold text-slate-800 text-sm">
-                {isCompleted ? 'Ready to explore!' : 'Almost there!'}
-              </h4>
-              <p className="text-xs text-slate-500">
-                {isCompleted
-                  ? 'Click below to review your self-designing dashboard.'
-                  : 'Good things take a little time. Deep statistical analysis in progress.'}
-              </p>
-            </div>
-
-            {isCompleted && onViewDashboard && (
-              <button
-                onClick={onViewDashboard}
-                className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#0c1815] hover:bg-[#18362e] text-white text-xs font-semibold transition-all shadow-md active:scale-[0.98] cursor-pointer"
-              >
-                <span>View Dashboard</span>
-                <ArrowRight className="w-4 h-4 text-emerald-400" />
-              </button>
-            )}
-          </div>
-
-          {/* Presentation Module 3: Tip Card */}
-          <ProgressTipCard />
+      {/* View Switcher Tabs */}
+      <div className="flex items-center justify-center">
+        <div className="inline-flex p-1 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          <button
+            onClick={() => setActiveTab('checklist')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 'checklist'
+                ? 'bg-[#0c1815] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <CheckSquare className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Investigation Checklist</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('agents')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 'agents'
+                ? 'bg-[#0c1815] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5 text-emerald-400" />
+            <span>8 Specialized Agents</span>
+          </button>
         </div>
       </div>
+
+      {/* Main Content Area */}
+      {activeTab === 'checklist' ? (
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+          {/* Presentation Module 1: 8-Step Checklist */}
+          <div className="md:col-span-7">
+            <ProgressChecklist currentProgress={currentProgress} />
+          </div>
+
+          {/* Presentation Module 2: Circular Progress Gauge & Tip */}
+          <div className="md:col-span-5 space-y-6">
+            <div className="bg-white rounded-3xl p-8 border border-slate-200/90 shadow-sm flex flex-col items-center text-center space-y-6">
+              <CircularProgress
+                percentage={currentProgress}
+                size={170}
+                strokeWidth={13}
+              />
+
+              <div className="space-y-1">
+                <h4 className="font-bold text-slate-800 text-sm">
+                  {isCompleted ? 'Ready to explore!' : 'Almost there!'}
+                </h4>
+                <p className="text-xs text-slate-500">
+                  {isCompleted
+                    ? 'Click below to review your self-designing dashboard.'
+                    : 'Good things take a little time. Deep statistical analysis in progress.'}
+                </p>
+              </div>
+
+              {isCompleted && onViewDashboard && (
+                <button
+                  onClick={onViewDashboard}
+                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#0c1815] hover:bg-[#18362e] text-white text-xs font-semibold transition-all shadow-md active:scale-[0.98] cursor-pointer"
+                >
+                  <span>View Dashboard</span>
+                  <ArrowRight className="w-4 h-4 text-emerald-400" />
+                </button>
+              )}
+            </div>
+
+            {/* Presentation Module 3: Tip Card */}
+            <ProgressTipCard />
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <AgentTimeline
+            jobId={jobStatus?.job_id || 'sample-job'}
+            datasetName={datasetName || 'dataset.csv'}
+            onInvestigationFinished={onViewDashboard}
+          />
+          {isCompleted && onViewDashboard && (
+            <div className="text-center pt-2">
+              <button
+                onClick={onViewDashboard}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#0c1815] hover:bg-[#18362e] text-white text-xs font-semibold transition-all shadow-md active:scale-[0.98] cursor-pointer"
+              >
+                <span>Continue to Dashboard</span>
+                <ArrowRight className="w-4 h-4 text-emerald-400" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

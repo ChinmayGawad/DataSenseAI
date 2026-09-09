@@ -118,3 +118,28 @@ def stitch_table_fragments(fragments: List[Dict[str, Any]]) -> List[ExtractedTab
     # Sort so largest table is first (primary dataset)
     result_tables.sort(key=lambda t: t.row_count * t.col_count, reverse=True)
     return result_tables
+
+
+def stitch_multi_page_tables(tables: List[ExtractedTable]) -> List[ExtractedTable]:
+    """
+    Stitches a list of ExtractedTable objects based on schema similarity and column matching.
+    """
+    if not tables:
+        return []
+
+    frags = []
+    for idx, t in enumerate(tables):
+        df = t.df if hasattr(t, 'df') else getattr(t, 'dataframe', None)
+        if df is not None and not df.empty:
+            frags.append({
+                "page": t.page_number,
+                "table_index": idx,
+                "df": df,
+                "headers": list(df.columns)
+            })
+
+    if not frags:
+        return tables
+
+    return stitch_table_fragments(frags)
+

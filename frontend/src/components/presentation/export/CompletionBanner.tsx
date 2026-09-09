@@ -23,7 +23,9 @@ export default function CompletionBanner({
           Analysis Complete!
         </h3>
         <p className="text-xs sm:text-sm text-slate-500 max-w-md">
-          All 8 agents completed fact-checked investigation and generated clean deliverables.
+          Your data has been transformed into meaningful insights.
+          <br />
+          <span className="font-semibold text-slate-700">Turn data into decisions.</span>
         </p>
       </div>
 
@@ -46,7 +48,7 @@ export default function CompletionBanner({
 
       {/* Handwritten Annotation in Corner */}
       <div className="sm:absolute bottom-4 right-6 text-xs font-serif italic text-emerald-800 rotate-[-4deg] opacity-90 pt-2 sm:pt-0">
-        Different Data. Better Decisions. ✨
+        Different Data. Better Decisions.
       </div>
     </div>
   );

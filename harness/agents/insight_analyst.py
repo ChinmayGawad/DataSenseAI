@@ -57,58 +57,83 @@ def run_insight_analyst(
     if not insights:
         ins_id = 1
         
-        # 1. Correlation Insight
+        # 1. Correlation Insights (up to 2 strong correlations)
         if strong_corrs:
-            top_c = strong_corrs[0]
-            col_a = top_c["column_a"]
-            col_b = top_c["column_b"]
-            r_val = top_c["coefficient"]
-            direction = top_c["direction"]
-            insights.append({
-                "id": f"ins_{ins_id}",
-                "headline": f"Strong {direction.capitalize()} Dependency Between {col_a} and {col_b}",
-                "statement": f"{col_a} and {col_b} demonstrate a {top_c['strength']} {direction} correlation of {r_val}. As {col_a} increases, {col_b} tends to follow consistently.",
-                "category": "correlation",
-                "importance": "high",
-                "actionable_recommendation": f"Leverage {col_a} as a leading driver when optimizing or forecasting {col_b}.",
-                "related_columns": [col_a, col_b],
-                "_raw_metric": f"r={r_val}"
-            })
-            ins_id += 1
+            for top_c in strong_corrs[:2]:
+                col_a = top_c["column_a"]
+                col_b = top_c["column_b"]
+                r_val = top_c["coefficient"]
+                direction = top_c["direction"]
+                insights.append({
+                    "id": f"ins_{ins_id}",
+                    "headline": f"Strong {direction.capitalize()} Dependency Between {col_a} and {col_b}",
+                    "statement": f"{col_a} and {col_b} demonstrate a {top_c['strength']} {direction} correlation of {r_val}. As {col_a} increases, {col_b} tends to follow consistently.",
+                    "category": "correlation",
+                    "importance": "high" if abs(r_val) >= 0.7 else "medium",
+                    "actionable_recommendation": f"Leverage {col_a} as a leading driver when optimizing or forecasting {col_b}.",
+                    "related_columns": [col_a, col_b],
+                    "_raw_metric": f"r={r_val}"
+                })
+                ins_id += 1
 
-        # 2. Outlier Insight
+        # 2. Outlier / Anomaly Insight
         outlier_pct = outliers.get("outlier_percentage", 0.0)
         outlier_cnt = outliers.get("total_outliers", 0)
         if outlier_cnt > 0:
+            iqr_cols = list(outliers.get("column_iqr_outliers", {}).keys())
+            col_target_str = f" in {', '.join(iqr_cols[:2])}" if iqr_cols else ""
             insights.append({
                 "id": f"ins_{ins_id}",
                 "headline": f"Anomalous Activity Detected ({outlier_pct}% of Records)",
-                "statement": f"Identified {outlier_cnt} high-leverage outliers ({outlier_pct}% of total records) exhibiting extreme multivariable deviations.",
+                "statement": f"Isolation Forest identified {outlier_cnt} high-leverage outliers ({outlier_pct}% of total records){col_target_str} exhibiting extreme multivariable deviations.",
                 "category": "anomaly",
                 "importance": "high" if outlier_pct > 3.0 else "medium",
-                "actionable_recommendation": "Use the 'Investigate This Finding' drilldown to audit these specific anomalous transactions for data entry errors or fraud.",
-                "related_columns": list(outliers.get("column_iqr_outliers", {}).keys()),
+                "actionable_recommendation": "Use the root-cause drilldown to audit these specific anomalous transactions for operational exceptions or entry errors.",
+                "related_columns": iqr_cols[:3],
                 "_raw_metric": f"{outlier_cnt} outliers ({outlier_pct}%)"
             })
             ins_id += 1
 
-        # 3. Cluster Insight
+        # 3. Cluster / Segmentation Insight
         if clustering.get("has_sufficient_data") and clustering.get("k", 0) > 0:
             k = clustering.get("k")
             best_cluster = max(clustering.get("cluster_summaries", []), key=lambda x: x.get("size", 0), default={})
             insights.append({
                 "id": f"ins_{ins_id}",
-                "headline": f"Identified {k} Distinct Behavioral Segments",
-                "statement": f"Unsupervised clustering revealed {k} distinct cohorts. The dominant segment represents {best_cluster.get('percentage', 0)}% of the dataset.",
+                "headline": f"Discovered {k} Distinct Behavioral Segments",
+                "statement": f"Unsupervised KMeans clustering segmented observations into {k} distinct cohorts. The dominant group represents {best_cluster.get('percentage', 0)}% of the dataset.",
                 "category": "cluster",
                 "importance": "medium",
-                "actionable_recommendation": "Tailor operational strategies and pricing models separately for each behavioral cluster archetype.",
+                "actionable_recommendation": "Tailor operational strategies and resource allocation separately for each behavioral cluster archetype.",
                 "related_columns": clustering.get("features_used", []),
                 "_raw_metric": f"k={k}, dominant={best_cluster.get('percentage')}%"
             })
             ins_id += 1
 
-        # 4. Data Quality / Hygiene Insight
+        # 4. Statistical Distribution / High Variance Measure Insight
+        num_stats = stats.get("numeric_stats", {})
+        if num_stats and len(num_stats) > 0:
+            # Find feature with significant spread
+            top_var_col = max(num_stats.keys(), key=lambda c: num_stats[c].get("std", 0), default=None)
+            if top_var_col:
+                col_info = num_stats[top_var_col]
+                mean_v = col_info.get("mean", 0)
+                std_v = col_info.get("std", 0)
+                min_v = col_info.get("min", 0)
+                max_v = col_info.get("max", 0)
+                insights.append({
+                    "id": f"ins_{ins_id}",
+                    "headline": f"Significant Dispersion in {top_var_col.replace('_', ' ').title()}",
+                    "statement": f"{top_var_col.replace('_', ' ').title()} averages {mean_v:.1f} with wide standard deviation of {std_v:.1f} across the range [{min_v:.1f} - {max_v:.1f}].",
+                    "category": "trend",
+                    "importance": "medium",
+                    "actionable_recommendation": f"Segment operations by {top_var_col.replace('_', ' ').title()} tiers to reduce variance and improve predictability.",
+                    "related_columns": [top_var_col],
+                    "_raw_metric": f"mean={mean_v:.1f}, std={std_v:.1f}"
+                })
+                ins_id += 1
+
+        # 5. Data Quality / Hygiene Insight
         grade = quality_report.get("quality_grade", "A")
         insights.append({
             "id": f"ins_{ins_id}",

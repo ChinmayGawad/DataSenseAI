@@ -27,7 +27,7 @@ export default function LandingView({ onStartUpload }: LandingViewProps) {
           <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-600 flex items-center justify-center">
             <BarChart className="w-5 h-5 fill-emerald-600 text-emerald-600" />
           </div>
-          <span className="font-bold text-slate-900 text-xl tracking-tight">InsightFlow</span>
+          <span className="font-bold text-slate-900 text-xl tracking-tight">DataSense AI</span>
         </div>
 
         <div className="hidden md:flex items-center gap-8 text-xs font-medium text-slate-600">
@@ -121,8 +121,9 @@ export default function LandingView({ onStartUpload }: LandingViewProps) {
               </div>
 
               {/* Handwritten Note Annotation */}
-              <div className="absolute -bottom-7 -right-4 bg-white/90 backdrop-blur-xs px-3.5 py-1.5 rounded-full border border-slate-200 shadow-md rotate-[-6deg] text-xs font-serif italic text-emerald-800">
-                Same data. Smarter decisions. ✨
+              <div className="absolute -bottom-7 -right-4 bg-white/90 backdrop-blur-xs px-3.5 py-1.5 rounded-full border border-slate-200 shadow-md rotate-[-6deg] text-xs font-serif italic text-emerald-800 flex items-center gap-1">
+                <span>Same data. Smarter decisions.</span>
+                <Sparkles className="w-3.5 h-3.5 text-emerald-600 inline shrink-0" />
               </div>
             </div>
           </div>
