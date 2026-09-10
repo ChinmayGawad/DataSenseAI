@@ -60,6 +60,10 @@ class DashboardResponse(BaseModel):
     columns: List[Dict[str, Any]] = Field(default_factory=list)
     quality_report: Dict[str, Any] = Field(default_factory=dict)
     raw_rows: List[Dict[str, Any]] = Field(default_factory=list)
+    cleaned_rows: List[Dict[str, Any]] = Field(default_factory=list)
+    cleaning_diffs: List[Dict[str, Any]] = Field(default_factory=list)
+    missing_value_rows: List[Dict[str, Any]] = Field(default_factory=list)
+    outlier_rows: List[Dict[str, Any]] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 

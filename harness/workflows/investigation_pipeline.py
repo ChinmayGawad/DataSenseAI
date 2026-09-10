@@ -222,6 +222,13 @@ def run_investigation_pipeline(
         # -------------------------------------------------------------
         # ASSEMBLE FINAL INVESTIGATION PAYLOAD
         # -------------------------------------------------------------
+        # Prepare JSON-safe cleaned sample rows (converting Timestamps to strings)
+        sample_cleaned_df = cleaned_df.head(100).copy()
+        for c in sample_cleaned_df.columns:
+            if hasattr(sample_cleaned_df[c], "dt"):
+                sample_cleaned_df[c] = sample_cleaned_df[c].astype(str).replace({"NaT": None, "nan": None})
+        sample_cleaned_records = sample_cleaned_df.where(sample_cleaned_df.notna(), None).to_dict(orient="records")
+
         return {
             "status": "success",
             "dataset_name": dataset_name,
@@ -237,6 +244,7 @@ def run_investigation_pipeline(
             "columns": col_metadata.get("columns", []),
             "quality": quality_result,
             "cleaning": cleaner_result,
+            "cleaned_sample_rows": sample_cleaned_records,
             "investigation_plan": planner_result.get("steps", []),
             "ml_findings": scientist_result,
             "charts": viz_result.get("charts", []),

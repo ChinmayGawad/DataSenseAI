@@ -41,7 +41,7 @@ export default function Navbar({ onReset, showReset, activeDataset }: NavbarProp
           </div>
 
           <a
-            href="http://localhost:8000/docs"
+            href="http://localhost:8001/docs"
             target="_blank"
             rel="noopener noreferrer"
             className="hidden md:flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-800/60"

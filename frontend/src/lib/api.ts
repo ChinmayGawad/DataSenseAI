@@ -3,7 +3,7 @@
  * Connects Next.js to the FastAPI backend service
  */
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api';
 
 export interface SystemHealthStatus {
   isOnline: boolean;
@@ -204,6 +204,15 @@ export interface ColumnProfileItem {
   suggested_role?: string;
 }
 
+export interface CleaningDiffItem {
+  row_index: number;
+  column: string;
+  original_value: unknown;
+  cleaned_value: unknown;
+  action_type: string;
+  reason: string;
+}
+
 export interface DashboardResponse {
   job_id: string;
   dataset_id: string;
@@ -217,6 +226,8 @@ export interface DashboardResponse {
   columns?: ColumnProfileItem[];
   quality_report?: Record<string, any>;
   raw_rows?: Record<string, any>[];
+  cleaned_rows?: Record<string, unknown>[];
+  cleaning_diffs?: CleaningDiffItem[];
   missing_value_rows?: Record<string, any>[];
   outlier_rows?: Record<string, any>[];
   created_at: string;
@@ -751,7 +762,9 @@ export function parseCsvToDashboard(filename: string, text: string, datasetId: s
       total_columns: headers.length,
       initial_health_score: 82,
     },
-    raw_rows: rawRows.slice(0, 15),
+    raw_rows: rawRows.slice(0, 100),
+    cleaned_rows: rawRows.slice(0, 100),
+    cleaning_diffs: [],
     created_at: new Date().toISOString(),
   };
 }

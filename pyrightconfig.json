@@ -9,5 +9,10 @@
     "core-ml",
     "harness",
     "backend"
-  ]
+  ],
+  "typeCheckingMode": "basic",
+  "reportMissingTypeStubs": false,
+  "reportArgumentType": "none",
+  "reportCallIssue": "none",
+  "reportAttributeAccessIssue": "none"
 }

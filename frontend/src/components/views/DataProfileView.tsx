@@ -6,7 +6,7 @@ import { ColumnProfileItem, DashboardResponse, DatasetUploadResponse } from '../
 import ColumnCatalogFilters from '../presentation/profile/ColumnCatalogFilters';
 import ColumnCatalogTable from '../presentation/profile/ColumnCatalogTable';
 import ColumnTypeSummaryPills from '../presentation/profile/ColumnTypeSummaryPills';
-import RawDataPreviewModal from '../presentation/profile/RawDataPreviewModal';
+import InteractiveDataGridModal from '../presentation/profile/InteractiveDataGridModal';
 
 interface DataProfileViewProps {
   dashboard: DashboardResponse | null;
@@ -151,12 +151,16 @@ export default function DataProfileView({
         </>
       )}
 
-      {/* Raw Data Preview Modal */}
-      <RawDataPreviewModal
+      {/* Interactive Data Grid Modal */}
+      <InteractiveDataGridModal
         isOpen={isRawDataOpen}
         onClose={() => setIsRawDataOpen(false)}
         datasetName={datasetName}
-        rawRows={rawRows}
+        rawRows={dashboard?.raw_rows || rawRows}
+        cleanedRows={dashboard?.cleaned_rows || rawRows}
+        cleaningDiffs={dashboard?.cleaning_diffs || []}
+        totalRows={totalRows}
+        initialMode="raw"
       />
     </div>
   );

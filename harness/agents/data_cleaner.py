@@ -77,4 +77,7 @@ def run_data_cleaner(
         "key_decisions": llm_res.get("key_decisions", []),
         "original_shape": orig_shape,
         "cleaned_shape": clean_shape,
+        "cell_diffs": cleaning_report.get("cell_diffs", []),
+        "duplicate_indices": cleaning_report.get("duplicate_indices", []),
     }
+

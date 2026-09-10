@@ -59,13 +59,13 @@ def stream_investigation_events_sync(
         try:
             kind, payload = event_q.get(timeout=30)
             if kind == "event":
-                yield f"data: {json.dumps({'type': 'event', 'data': payload})}\n\n"
+                yield f"data: {json.dumps({'type': 'event', 'data': payload}, default=str)}\n\n"
             elif kind == "done":
                 if "res" in result_holder:
-                    yield f"data: {json.dumps({'type': 'complete', 'data': result_holder['res']})}\n\n"
+                    yield f"data: {json.dumps({'type': 'complete', 'data': result_holder['res']}, default=str)}\n\n"
                 else:
                     err_msg = result_holder.get("error", "Investigation failed.")
-                    yield f"data: {json.dumps({'type': 'error', 'message': err_msg})}\n\n"
+                    yield f"data: {json.dumps({'type': 'error', 'message': err_msg}, default=str)}\n\n"
                 break
         except queue.Empty:
             # Keepalive ping

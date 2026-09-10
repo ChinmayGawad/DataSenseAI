@@ -5,7 +5,8 @@ import { Sparkles, ArrowRight, CheckCircle2, AlertCircle, Upload } from 'lucide-
 import ComparisonGauge from '../ui/ComparisonGauge';
 import CleaningMetricCards from '../presentation/cleaning/CleaningMetricCards';
 import CleaningAuditSummary from '../presentation/cleaning/CleaningAuditSummary';
-import RawDataPreviewModal from '../presentation/profile/RawDataPreviewModal';
+import RemediationDiffSpotlight from '../presentation/cleaning/RemediationDiffSpotlight';
+import InteractiveDataGridModal from '../presentation/profile/InteractiveDataGridModal';
 import { DashboardResponse, DatasetUploadResponse } from '../../lib/api';
 
 interface CleaningViewProps {
@@ -22,6 +23,7 @@ export default function CleaningView({
   onViewProfile,
 }: CleaningViewProps) {
   const [isPreviewOpen, setIsPreviewOpen] = React.useState(false);
+  const [previewMode, setPreviewMode] = React.useState<'diff' | 'cleaned' | 'raw'>('diff');
 
   const cleaning = dashboard?.cleaning_summary || {};
   const missingFixed = cleaning.missing_values_imputed ?? 0;
@@ -92,7 +94,18 @@ export default function CleaningView({
         }
       />
 
-      {/* Presentation Module 3: Confirmation & Details Summary */}
+      {/* Presentation Module 3: Remediation Diff Spotlight */}
+      <RemediationDiffSpotlight
+        rawRows={dashboard?.raw_rows || uploadedDataset?.sample_rows}
+        cleanedRows={dashboard?.cleaned_rows || uploadedDataset?.sample_rows}
+        cleaningDiffs={dashboard?.cleaning_diffs || []}
+        onOpenDataGrid={() => {
+          setPreviewMode('diff');
+          setIsPreviewOpen(true);
+        }}
+      />
+
+      {/* Presentation Module 4: Confirmation & Details Summary */}
       <CleaningAuditSummary />
 
       {/* Action Navigation Buttons */}
@@ -108,10 +121,24 @@ export default function CleaningView({
           )}
 
           <button
-            onClick={() => setIsPreviewOpen(true)}
+            onClick={() => {
+              setPreviewMode('cleaned');
+              setIsPreviewOpen(true);
+            }}
             className="px-5 py-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-semibold transition-all shadow-xs active:scale-[0.98] cursor-pointer"
           >
             Preview Cleaned Data
+          </button>
+
+          <button
+            onClick={() => {
+              setPreviewMode('diff');
+              setIsPreviewOpen(true);
+            }}
+            className="px-5 py-3 rounded-xl bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-300 text-emerald-800 text-xs font-semibold transition-all shadow-xs active:scale-[0.98] cursor-pointer inline-flex items-center gap-1.5"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Raw vs Cleaned Diff</span>
           </button>
         </div>
 
@@ -124,12 +151,16 @@ export default function CleaningView({
         </button>
       </div>
 
-      {/* Preview Cleaned Data Modal */}
-      <RawDataPreviewModal
+      {/* Interactive Data Grid Modal (Diff & Cleaned Views) */}
+      <InteractiveDataGridModal
         isOpen={isPreviewOpen}
         onClose={() => setIsPreviewOpen(false)}
         datasetName={datasetName}
-        rawRows={(dashboard as any)?.raw_rows || uploadedDataset?.sample_rows}
+        rawRows={dashboard?.raw_rows || uploadedDataset?.sample_rows}
+        cleanedRows={dashboard?.cleaned_rows || uploadedDataset?.sample_rows}
+        cleaningDiffs={dashboard?.cleaning_diffs || []}
+        totalRows={dashboard?.quality_report?.total_rows ?? uploadedDataset?.row_count}
+        initialMode={previewMode}
       />
     </div>
   );
