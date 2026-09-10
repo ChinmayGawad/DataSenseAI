@@ -298,7 +298,7 @@ export default function WhyEngineView({
 
           <div className="space-y-3">
             {whyData.recommendations && whyData.recommendations.length > 0 ? (
-              whyData.recommendations.map((rec, idx) => (
+              whyData.recommendations.map((rec: any, idx: number) => (
                 <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                   <div className="flex items-start gap-2">
                     <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">

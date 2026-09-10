@@ -79,6 +79,24 @@ class TestAdvancedCapabilities(unittest.TestCase):
         self.assertGreaterEqual(len(chunks), 10)
         self.assertTrue(any('"type": "complete"' in c for c in chunks))
 
+    def test_05b_sse_endpoint_stream(self):
+        """Test the FastAPI GET /api/status/{job_id}/stream SSE HTTP endpoint."""
+        from fastapi.testclient import TestClient
+        from backend.app.main import app
+        from backend.app.services.job_store import job_store
+
+        client = TestClient(app)
+        test_job_id = job_store.create_job("ds_sse_test")
+        job_store.add_agent_log(test_job_id, "Data Detective", "🔍", "Profiling", "Schema analyzed")
+        job_store.update_job_status(test_job_id, status="completed", progress=100, summary="Done")
+
+        with client.stream("GET", f"/api/status/{test_job_id}/stream") as response:
+            self.assertEqual(response.status_code, 200)
+            self.assertIn("text/event-stream", response.headers.get("content-type", ""))
+            lines = [line for line in response.iter_lines() if line]
+            self.assertTrue(len(lines) >= 1)
+            self.assertTrue(any("init" in line or "complete" in line for line in lines))
+
     def test_06_dirty_ecommerce_resilience(self):
         """Test pipeline against messy formatting, currency symbols, and multi-format dates."""
         res = run_investigation_sync(self.dirty_csv)

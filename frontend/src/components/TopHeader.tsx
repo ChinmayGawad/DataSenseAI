@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
-import { Bell, ChevronDown, Calendar, RotateCcw, Sparkles, Menu, BarChart } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, ChevronDown, Calendar, RotateCcw, Sparkles, Menu, BarChart, Activity } from 'lucide-react';
+import { checkBackendHealth, SystemHealthStatus } from '../lib/api';
 
 interface TopHeaderProps {
   currentView: string;
@@ -23,6 +24,23 @@ export default function TopHeader({
   onToggleMobileMenu,
 }: TopHeaderProps) {
   const handleMenuClick = onToggleMenu || onToggleMobileMenu;
+  const [healthStatus, setHealthStatus] = useState<SystemHealthStatus>({ isOnline: false });
+
+  useEffect(() => {
+    let mounted = true;
+    const probe = async () => {
+      const status = await checkBackendHealth();
+      if (mounted) {
+        setHealthStatus(status);
+      }
+    };
+    probe();
+    const interval = setInterval(probe, 20000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
     <header className="h-16 px-4 sm:px-6 border-b border-slate-200/80 bg-white flex items-center justify-between shrink-0 sticky top-0 z-30">
@@ -55,6 +73,34 @@ export default function TopHeader({
 
       {/* Right Controls */}
       <div className="flex items-center gap-2.5 sm:gap-3">
+        {/* Live Backend vs Demo Indicator */}
+        <div
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
+            healthStatus.isOnline
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80 shadow-xs'
+              : 'bg-amber-50 text-amber-700 border-amber-200/80 shadow-xs'
+          }`}
+          title={
+            healthStatus.isOnline
+              ? `Connected to FastAPI Backend (v${healthStatus.version}) • ${healthStatus.latencyMs}ms latency`
+              : 'Running in Offline Simulation Mode (Demo fallback active)'
+          }
+        >
+          <span
+            className={`w-2 h-2 rounded-full ${
+              healthStatus.isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'
+            }`}
+          />
+          <span className="font-semibold hidden sm:inline">
+            {healthStatus.isOnline ? 'Live Backend' : 'Demo Mode'}
+          </span>
+          {healthStatus.isOnline && healthStatus.latencyMs !== undefined && (
+            <span className="text-[10px] text-emerald-600/80 hidden lg:inline">
+              ({healthStatus.latencyMs}ms)
+            </span>
+          )}
+        </div>
+
         {/* Ask AI Button */}
         {onOpenChat && (
           <button

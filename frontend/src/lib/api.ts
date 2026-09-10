@@ -3,7 +3,36 @@
  * Connects Next.js to the FastAPI backend service
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+
+export interface SystemHealthStatus {
+  isOnline: boolean;
+  service?: string;
+  version?: string;
+  harnessUrl?: string;
+  latencyMs?: number;
+}
+
+export async function checkBackendHealth(): Promise<SystemHealthStatus> {
+  const startTime = Date.now();
+  try {
+    const rootUrl = API_BASE_URL.replace(/\/api\/?$/, '');
+    const res = await fetch(`${rootUrl}/health`, { method: 'GET', cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        isOnline: true,
+        service: data.service || 'DataSense AI',
+        version: data.version || '1.0.0',
+        harnessUrl: data.harness_url,
+        latencyMs: Date.now() - startTime,
+      };
+    }
+  } catch {
+    // Offline or unreachable
+  }
+  return { isOnline: false };
+}
 
 export interface UncertainField {
   field: string;

@@ -1,0 +1,13 @@
+{
+  "include": [
+    "backend",
+    "core-ml",
+    "harness",
+    "tests"
+  ],
+  "extraPaths": [
+    "core-ml",
+    "harness",
+    "backend"
+  ]
+}

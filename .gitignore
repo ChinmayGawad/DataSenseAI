@@ -1,16 +1,137 @@
-# Python
+# ==========================================
+# Operating System Artifacts
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.lnk
+
+# ==========================================
+# IDE & Code Editors
+# ==========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.bak
+*.tmp
+.project
+.classpath
+.cproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# ==========================================
+# AI Agent & IDE Tooling
+# ==========================================
+.agents/
+.gemini/
+.cursor/
+.claude/
+
+# ==========================================
+# Environment Variables, Secrets & Keys
+# ==========================================
+.env
+.env.*
+*.env
+*.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+*secret*.json
+*credential*.json
+*serviceAccount*.json
+token.json
+tokens.json
+# Allow example / template environment files
+!.env.example
+!.env.template
+!.env.sample
+
+# ==========================================
+# Python & Machine Learning
+# ==========================================
 __pycache__/
 *.py[cod]
 *$py.class
-.pytest_cache/
-.coverage
-htmlcov/
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
 *.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
 venv/
 .venv/
 env/
+ENV/
+env.bak/
+venv.bak/
+.conda/
 
-# Node & Frontend Dependencies
+# ML Weights & Model Checkpoints (local artifacts)
+*.pt
+*.pth
+*.bin
+*.onnx
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+
+# ==========================================
+# Testing, Coverage & Type Checking
+# ==========================================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+report.html
+tests/temp_*/
+tests/temp_qa_dir/
+temp_*/
+
+# ==========================================
+# Node & Frontend (Next.js)
+# ==========================================
 node_modules/
 frontend/node_modules/
 npm-debug.log*
@@ -20,25 +141,43 @@ yarn-error.log*
 .pnp
 .pnp.*
 
-# Next.js Build & Production
+# Next.js Build Outputs
 .next/
 frontend/.next/
 out/
-build/
 dist/
 *.tsbuildinfo
+frontend/tsconfig.tsbuildinfo
 next-env.d.ts
 frontend/next-env.d.ts
 .vercel/
+.turbo/
 
-# Environment & Uploads
-.env
-.env.local
-.env.*.local
+# ==========================================
+# Runtime, Logs & Databases
+# ==========================================
+*.log
+logs/
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# ==========================================
+# Uploads & Temporary Cache
+# ==========================================
 uploads/*
 !uploads/.gitkeep
+tmp/
+temp/
+scratch/
+.cache/
 
-# Operating System & Misc
-.DS_Store
-Thumbs.db
-*.pem
+# ==========================================
+# Supabase Local Development
+# ==========================================
+.supabase/
+supabase/.temp/
+supabase/.branches/

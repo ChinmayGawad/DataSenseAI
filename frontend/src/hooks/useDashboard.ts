@@ -8,7 +8,7 @@ export function useDashboard() {
   const [loadingDrilldown, setLoadingDrilldown] = useState<string | null>(null);
 
   const toggleWhyChart = useCallback((chartId: string) => {
-    setActiveWhyChart((prev) => (prev === chartId ? null : chartId));
+    setActiveWhyChart((prev: string | null) => (prev === chartId ? null : chartId));
   }, []);
 
   const triggerDrilldown = useCallback(async (jobId: string, findingId: string) => {

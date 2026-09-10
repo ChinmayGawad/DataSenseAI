@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
+  API_BASE_URL,
   startInvestigation,
   getJobStatus,
   getDashboard,
@@ -13,58 +14,141 @@ export function useInvestigation() {
   const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [investigationError, setInvestigationError] = useState<string | null>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
 
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const cleanupPolling = useCallback(() => {
+  const cleanupSubscriptions = useCallback(() => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = null;
     }
+    setIsStreaming(false);
   }, []);
 
   useEffect(() => {
-    return cleanupPolling;
-  }, [cleanupPolling]);
+    return cleanupSubscriptions;
+  }, [cleanupSubscriptions]);
 
-  // Polling loop for job status
+  // Real-time SSE streaming with automatic polling fallback
   useEffect(() => {
     if (!activeJobId) {
-      cleanupPolling();
+      cleanupSubscriptions();
       return;
     }
 
     if (jobStatus?.status === 'completed' || jobStatus?.status === 'failed') {
-      cleanupPolling();
+      cleanupSubscriptions();
       setIsAnalyzing(false);
       return;
     }
 
-    const poll = async () => {
-      try {
-        const status = await getJobStatus(activeJobId);
-        setJobStatus(status);
+    const startPolling = () => {
+      if (pollIntervalRef.current) return;
+      setIsStreaming(false);
 
-        if (status.status === 'completed') {
-          cleanupPolling();
-          setIsAnalyzing(false);
-          const dash = await getDashboard(activeJobId);
-          setDashboardData(dash);
-        } else if (status.status === 'failed') {
-          cleanupPolling();
-          setIsAnalyzing(false);
-          setInvestigationError(status.error_message || 'Investigation failed');
+      const poll = async () => {
+        try {
+          const status = await getJobStatus(activeJobId);
+          setJobStatus(status);
+
+          if (status.status === 'completed') {
+            cleanupSubscriptions();
+            setIsAnalyzing(false);
+            const dash = await getDashboard(activeJobId);
+            setDashboardData(dash);
+          } else if (status.status === 'failed') {
+            cleanupSubscriptions();
+            setIsAnalyzing(false);
+            setInvestigationError(status.error_message || 'Investigation failed');
+          }
+        } catch (err: any) {
+          console.error('Error in status polling:', err);
         }
-      } catch (err: any) {
-        console.error('Error in status polling:', err);
-      }
+      };
+
+      pollIntervalRef.current = setInterval(poll, 1500);
+      poll();
     };
 
-    pollIntervalRef.current = setInterval(poll, 1500);
-    poll(); // Run immediately
+    // Attempt Server-Sent Events first for real-time sub-100ms updates
+    if (typeof window !== 'undefined' && 'EventSource' in window) {
+      try {
+        const streamUrl = `${API_BASE_URL}/status/${activeJobId}/stream`;
+        const es = new EventSource(streamUrl);
+        eventSourceRef.current = es;
+        setIsStreaming(true);
 
-    return cleanupPolling;
-  }, [activeJobId, jobStatus?.status, cleanupPolling]);
+        es.onmessage = async (e) => {
+          try {
+            const data = JSON.parse(e.data);
+
+            if (data.type === 'init') {
+              setJobStatus((prev) => ({
+                job_id: data.job_id,
+                dataset_id: data.job_id,
+                status: data.status,
+                progress_percentage: data.progress_percentage || 0,
+                summary: data.summary,
+                logs: data.logs || [],
+                plan: prev?.plan || [],
+                updated_at: new Date().toISOString(),
+              }));
+            } else if (data.type === 'update') {
+              setJobStatus((prev) => {
+                const existingLogs = prev?.logs || [];
+                const incomingLogs = data.new_logs || [];
+                const mergedLogs = [...existingLogs];
+                for (const nl of incomingLogs) {
+                  if (!mergedLogs.some((el) => el.id === nl.id)) {
+                    mergedLogs.push(nl);
+                  }
+                }
+                return {
+                  job_id: data.job_id,
+                  dataset_id: data.job_id,
+                  status: data.status,
+                  current_agent: data.current_agent,
+                  progress_percentage: data.progress_percentage,
+                  health_score: data.health_score ?? prev?.health_score,
+                  summary: data.summary ?? prev?.summary,
+                  logs: mergedLogs,
+                  plan: prev?.plan || [],
+                  updated_at: new Date().toISOString(),
+                };
+              });
+            } else if (data.type === 'complete') {
+              cleanupSubscriptions();
+              setIsAnalyzing(false);
+              const dash = await getDashboard(activeJobId);
+              setDashboardData(dash);
+            } else if (data.type === 'error' || data.type === 'timeout') {
+              cleanupSubscriptions();
+              startPolling();
+            }
+          } catch (err) {
+            console.error('Error in SSE message handling:', err);
+          }
+        };
+
+        es.onerror = () => {
+          cleanupSubscriptions();
+          startPolling();
+        };
+      } catch {
+        startPolling();
+      }
+    } else {
+      startPolling();
+    }
+
+    return cleanupSubscriptions;
+  }, [activeJobId, jobStatus?.status, cleanupSubscriptions]);
 
   const startJob = useCallback(
     async (datasetId: string) => {
@@ -85,13 +169,13 @@ export function useInvestigation() {
   );
 
   const resetInvestigation = useCallback(() => {
-    cleanupPolling();
+    cleanupSubscriptions();
     setActiveJobId(null);
     setJobStatus(null);
     setDashboardData(null);
     setIsAnalyzing(false);
     setInvestigationError(null);
-  }, [cleanupPolling]);
+  }, [cleanupSubscriptions]);
 
   return {
     activeJobId,

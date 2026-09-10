@@ -323,6 +323,7 @@ def execute_investigation_pipeline(job_id: str, file_path: Path, filename: str) 
     outlier_info = ml.get("outlier_analysis", {})
     total_outliers = outlier_info.get("total_outliers", 0)
     outlier_pct = outlier_info.get("outlier_percentage", 0.0)
+    top_anomalies = outlier_info.get("top_anomalies", [])
 
     clust_info = ml.get("clustering_analysis", {})
     k_clusters = clust_info.get("k", 0)
