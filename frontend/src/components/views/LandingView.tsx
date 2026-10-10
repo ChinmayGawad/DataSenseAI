@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ArrowRight,
   BarChart,
@@ -13,12 +13,20 @@ import {
   Eye,
   Zap,
 } from 'lucide-react';
+import AnimatedOverlay from '../AnimatedOverlay';
 
 interface LandingViewProps {
   onStartUpload: () => void;
 }
 
 export default function LandingView({ onStartUpload }: LandingViewProps) {
+  const [showOverlay, setShowOverlay] = useState(false);
+
+  const handleContinue = () => {
+    setShowOverlay(false);
+    onStartUpload();
+  };
+
   return (
     <div className="min-h-[100dvh] flex flex-col bg-[#f5f8f7]">
       {/* Top Navigation */}
@@ -38,7 +46,7 @@ export default function LandingView({ onStartUpload }: LandingViewProps) {
         </div>
 
         <button
-          onClick={onStartUpload}
+          onClick={() => setShowOverlay(true)}
           className="px-5 py-2.5 rounded-xl bg-[#0c1815] hover:bg-[#152e28] text-white text-xs font-medium transition-colors shadow-xs active:scale-[0.98]"
         >
           Get Started
@@ -62,7 +70,7 @@ export default function LandingView({ onStartUpload }: LandingViewProps) {
 
             <div>
               <button
-                onClick={onStartUpload}
+                onClick={() => setShowOverlay(true)}
                 className="inline-flex items-center gap-3 px-6 py-3.5 rounded-xl bg-[#0c1815] hover:bg-[#152e28] text-white text-sm font-semibold transition-all shadow-md active:scale-[0.98] group"
               >
                 <span>Upload Your Dataset</span>
@@ -172,6 +180,12 @@ export default function LandingView({ onStartUpload }: LandingViewProps) {
           </div>
         </div>
       </main>
+
+      <AnimatedOverlay
+        isOpen={showOverlay}
+        onClose={() => setShowOverlay(false)}
+        onContinue={handleContinue}
+      />
     </div>
   );
 }
