@@ -13,6 +13,102 @@ export interface SystemHealthStatus {
   latencyMs?: number;
 }
 
+export interface AuthTokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in_minutes: number;
+  tenant_id: string;
+  user: {
+    user_id: string;
+    email: string;
+    tenant_id: string;
+    role: string;
+    name: string;
+  };
+}
+
+export interface UserProfile {
+  status: string;
+  user_id: string;
+  email: string;
+  tenant_id: string;
+  role: string;
+  name: string;
+  auth_enabled: boolean;
+}
+
+export interface DemoTenant {
+  email: string;
+  role: string;
+  tenant_id: string;
+  name: string;
+  default_password: string;
+  description: string;
+}
+
+export interface DemoTenantsResponse {
+  auth_enabled: boolean;
+  available_demo_tenants: DemoTenant[];
+}
+
+export async function registerUser(payload: {
+  email: string;
+  password: string;
+  confirm_password: string;
+  name?: string;
+}): Promise<AuthTokenResponse> {
+  const res = await fetch(`${API_BASE_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: "Registration failed" }));
+    throw new Error(error.detail || "Registration failed");
+  }
+
+  return res.json();
+}
+
+export async function loginUser(payload: {
+  email: string;
+  password: string;
+}): Promise<AuthTokenResponse> {
+  const res = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: "Login failed" }));
+    throw new Error(error.detail || "Login failed");
+  }
+
+  return res.json();
+}
+
+export async function fetchUserProfile(token: string): Promise<UserProfile> {
+  const res = await fetch(`${API_BASE_URL}/auth/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch user profile");
+  }
+
+  return res.json();
+}
+
+export async function fetchDemoTenants(): Promise<DemoTenantsResponse> {
+  const res = await fetch(`${API_BASE_URL}/auth/demo-tenants`);
+  if (!res.ok) {
+    throw new Error("Failed to fetch demo tenants");
+  }
+  return res.json();
+}
+
 export async function checkBackendHealth(): Promise<SystemHealthStatus> {
   const startTime = Date.now();
   try {

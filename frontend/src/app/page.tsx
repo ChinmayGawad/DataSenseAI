@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar, { NavView } from '../components/Sidebar';
 import TopHeader from '../components/TopHeader';
+import SignupForm from '../components/auth/SignupForm';
+import LoginForm from '../components/auth/LoginForm';
 
 // 9 Modular Views
 import LandingView from '../components/views/LandingView';
@@ -25,6 +27,9 @@ export default function Home() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [focusedWhyMetric, setFocusedWhyMetric] = useState<string | undefined>(undefined);
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>('');
+  const [showAuthForm, setShowAuthForm] = useState<'login' | 'signup' | null>('signup');
 
   // Custom Hooks encapsulating API and state logic
   const {
@@ -75,11 +80,50 @@ export default function Home() {
   };
 
   // Reset Session
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('datasense_auth_token') : null;
+    if (token) setAuthToken(token);
+  }, []);
+
+  const handleAuthSuccess = (token: string, name?: string) => {
+    setAuthToken(token);
+    if (name) setUserName(name);
+    if (typeof window !== 'undefined') localStorage.setItem('datasense_auth_token', token);
+    setShowAuthForm(null);
+  };
+
+  const handleLogout = () => {
+    setAuthToken(null);
+    if (typeof window !== 'undefined') localStorage.removeItem('datasense_auth_token');
+  };
+
   const handleReset = () => {
     resetUpload();
     resetInvestigation();
     setCurrentView('upload');
   };
+
+  // Auth overlay when not logged in
+  if (!authToken && showAuthForm) {
+    return (
+      <div className="min-h-[100dvh] bg-gradient-to-br from-[#f5f8f7] to-[#e8efec] flex items-center justify-center p-6">
+        <div className="max-w-sm w-full">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-[#0c1815] text-emerald-400 flex items-center justify-center shadow-2xl shadow-[#0c1815]/20 mb-4">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 6-6"/></svg>
+            </div>
+            <h1 className="text-2xl font-extrabold text-[#0c1815] tracking-tight">DataSense AI</h1>
+            <p className="text-xs text-slate-400 font-medium">Sign in to continue</p>
+          </div>
+          {showAuthForm === 'signup' ? (
+            <SignupForm onSuccess={(t: string, n?: string) => handleAuthSuccess(t, n)} onGoToLogin={() => setShowAuthForm('login')} />
+          ) : (
+            <LoginForm onSuccess={(t: string, n?: string) => handleAuthSuccess(t, n)} onGoToSignup={() => setShowAuthForm('signup')} />
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // Screen 1: Full-page Landing View
   if (currentView === 'landing') {
@@ -114,6 +158,11 @@ export default function Home() {
           onOpenChat={() => setIsChatOpen(true)}
           canChat={!!dashboardData || !!jobStatus?.job_id || !!uploadedDataset}
           onToggleMenu={() => setIsSidebarExpanded(!isSidebarExpanded)}
+          authToken={authToken}
+          userName={userName}
+          onLoginClick={() => setShowAuthForm('login')}
+          onSignupClick={() => setShowAuthForm('signup')}
+          onLogout={handleLogout}
         />
 
         {/* Dynamic View Router */}

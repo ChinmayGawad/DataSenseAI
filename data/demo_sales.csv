@@ -1,0 +1,7 @@
+Date,Product,Category,Revenue,UnitsSold,Region
+2026-10-01,Product A,Electronics,1200,10,North
+2026-10-01,Product B,Office,800,20,South
+2026-10-02,Product A,Electronics,1500,12,North
+2026-10-02,Product C,Furniture,3000,5,East
+2026-10-03,Product B,Office,950,25,South
+2026-10-03,Product D,Electronics,500,2,West

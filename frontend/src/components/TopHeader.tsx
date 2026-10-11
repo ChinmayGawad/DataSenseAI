@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Bell, ChevronDown, Calendar, RotateCcw, Sparkles, Menu, BarChart, Activity } from 'lucide-react';
+import { Bell, ChevronDown, Calendar, RotateCcw, Sparkles, Menu, BarChart, Activity, User, LogOut } from 'lucide-react';
 import { checkBackendHealth, SystemHealthStatus } from '../lib/api';
 
 interface TopHeaderProps {
@@ -12,6 +12,11 @@ interface TopHeaderProps {
   canChat?: boolean;
   onToggleMenu?: () => void;
   onToggleMobileMenu?: () => void;
+  authToken?: string | null;
+  userName?: string;
+  onLoginClick?: () => void;
+  onSignupClick?: () => void;
+  onLogout?: () => void;
 }
 
 export default function TopHeader({
@@ -22,6 +27,11 @@ export default function TopHeader({
   canChat,
   onToggleMenu,
   onToggleMobileMenu,
+  authToken,
+  userName,
+  onLoginClick,
+  onSignupClick,
+  onLogout,
 }: TopHeaderProps) {
   const handleMenuClick = onToggleMenu || onToggleMobileMenu;
   const [healthStatus, setHealthStatus] = useState<SystemHealthStatus>({ isOnline: false });
@@ -138,14 +148,43 @@ export default function TopHeader({
           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white" />
         </div>
 
-        {/* User Profile Avatar */}
-        <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200 cursor-pointer">
-          <div className="w-8 h-8 rounded-full bg-[#11241f] text-white flex items-center justify-center font-semibold text-xs shadow-xs">
-            S
+        {/* Auth Controls */}
+        {!authToken ? (
+          <div className="flex items-center gap-2">
+            {onLoginClick && (
+              <button
+                onClick={onLoginClick}
+                className="text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 px-3 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer"
+              >
+                Log In
+              </button>
+            )}
+            {onSignupClick && (
+              <button
+                onClick={onSignupClick}
+                className="text-xs font-bold text-white bg-[#0c1815] hover:bg-[#18362e] px-3 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer"
+              >
+                Sign Up
+              </button>
+            )}
           </div>
-          <span className="hidden sm:inline text-xs font-semibold text-slate-800">Sahil</span>
-          <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-        </div>
+        ) : (
+          <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+            <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-semibold text-xs shadow-xs">
+              <User className="w-4 h-4" />
+            </div>
+            <span className="hidden sm:inline text-xs font-semibold text-slate-700">{userName || 'User'}</span>
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                title="Log out"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </header>
   );
